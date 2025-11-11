@@ -30,8 +30,7 @@ const Header: React.FC<HeaderProps> = ({ currentPage, navigateTo, handleLogout }
     return (
         <header className="mb-6">
             <nav className="flex items-center justify-between gap-2 sm:gap-4 p-1 bg-gray-200 rounded-full">
-                {/* Note: Both "系統首頁" and "歷史資訊" point to HistoryPage as per original design. */}
-                <NavButton label="系統首頁" page={Page.History} currentPage={currentPage} onClick={() => navigateTo(Page.History)} />
+                <NavButton label="系統首頁" page={Page.Home} currentPage={currentPage} onClick={() => navigateTo(Page.Home)} />
                 <NavButton label="申請表填寫" page={Page.Form} currentPage={currentPage} onClick={() => navigateTo(Page.Form)} />
                 <NavButton label="歷史資訊" page={Page.History} currentPage={currentPage} onClick={() => navigateTo(Page.History)} />
             </nav>

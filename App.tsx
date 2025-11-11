@@ -41,6 +41,7 @@ const App: React.FC = () => {
         switch (currentPage) {
             case Page.Form:
                 return <ApplicationFormPage applicationToEdit={editingApplication} />;
+            case Page.Home:
             case Page.History:
                 return <HistoryPage userRole={userRole!} onEdit={(app) => navigateTo(Page.Form, app)} />;
             case Page.Login:

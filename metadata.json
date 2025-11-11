@@ -1,5 +1,5 @@
 {
-  "name": "Copy of 自主學習計畫申請系統 (Independent Learning Plan Application System)",
+  "name": "自主學習計畫申請系統",
   "description": "A web application for students at Taipei Fuhsing Senior High School to submit, track, and manage their independent learning plans. Teachers can also log in to review and provide feedback on submissions.",
   "requestFramePermissions": []
 }

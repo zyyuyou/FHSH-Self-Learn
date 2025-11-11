@@ -2,6 +2,7 @@ export enum Page {
     Login = 'login',
     Form = 'form',
     History = 'history',
+    Home = 'home',
 }
 
 export enum UserRole {

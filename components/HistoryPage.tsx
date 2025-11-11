@@ -2,33 +2,6 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Application, ApplicationStatus, UserRole } from '../types';
 import CommentModal from './CommentModal';
 
-const MOCK_APPLICATIONS: Application[] = [
-    {
-        id: 1,
-        title: '臺灣高中生壓力來源與心理調適探討',
-        applyDateStart: '2025/4/4 12:00',
-        applyDateEnd: '2025/10/10 16:00',
-        status: ApplicationStatus.NotPassed,
-        comment: '研究方法不夠具體，請詳述問卷設計與發放對象。預期成效也需要量化指標。',
-    },
-    {
-        id: 2,
-        title: '張愛玲筆下的愛情觀與女性命運',
-        applyDateStart: '2024/12/25 12:00',
-        applyDateEnd: '2025/1/20 16:00',
-        status: ApplicationStatus.Passed,
-        comment: '主題明確，文獻參考充足，計畫時程合理，同意通過。',
-    },
-    {
-        id: 3,
-        title: '利用Arduino開發智慧家庭監控系統',
-        applyDateStart: '2024/09/01 12:00',
-        applyDateEnd: '2024/09/30 16:00',
-        status: ApplicationStatus.Pending,
-        comment: '',
-    },
-];
-
 const StatusBadge: React.FC<{ status: ApplicationStatus }> = ({ status }) => {
     const baseClasses = "px-3 py-1 text-sm font-semibold rounded-full text-white";
     const statusClasses = {
@@ -70,7 +43,7 @@ const TeacherActions: React.FC<{ application: Application, onStatusChange: (id: 
 );
 
 const ApplicationCard: React.FC<{ application: Application; userRole: UserRole; onShowComment: (app: Application) => void; onStatusChange: (id: number, status: ApplicationStatus) => void; onEdit: (app: Application) => void; }> = ({ application, userRole, onShowComment, onStatusChange, onEdit }) => {
-    const buttonLabel = userRole === UserRole.Teacher ? '開啟' : '編輯';
+    const buttonLabel = '歷史資訊';
     return (
         <div className="bg-white rounded-xl shadow-md p-6 mb-6 transition-shadow hover:shadow-lg">
             <div className="space-y-3">
@@ -105,7 +78,7 @@ interface HistoryPageProps {
 }
 
 const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
-    const [applications, setApplications] = useState<Application[]>(MOCK_APPLICATIONS);
+    const [applications, setApplications] = useState<Application[]>([]);
     const [selectedApp, setSelectedApp] = useState<Application | null>(null);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [filters, setFilters] = useState({ year: '', month: '', day: '', status: '' });
@@ -123,6 +96,11 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
 
     const handleFilterChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
+        if (['year', 'month', 'day'].includes(name)) {
+            if (!/^\d*$/.test(value)) {
+                return; 
+            }
+        }
         setFilters(prev => ({ ...prev, [name]: value }));
     }, []);
 
@@ -151,9 +129,9 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
                 <div className="bg-white rounded-xl shadow-md p-4 mb-6">
                     <h2 className="font-bold text-lg mb-3">篩選</h2>
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 items-center">
-                        <input type="text" name="year" placeholder="年" value={filters.year} onChange={handleFilterChange} className="p-2 border rounded-md"/>
-                        <input type="text" name="month" placeholder="月" value={filters.month} onChange={handleFilterChange} className="p-2 border rounded-md"/>
-                        <input type="text" name="day" placeholder="日" value={filters.day} onChange={handleFilterChange} className="p-2 border rounded-md"/>
+                        <input type="text" inputMode="numeric" maxLength={4} name="year" placeholder="年" value={filters.year} onChange={handleFilterChange} className="p-2 border rounded-md"/>
+                        <input type="text" inputMode="numeric" maxLength={2} name="month" placeholder="月" value={filters.month} onChange={handleFilterChange} className="p-2 border rounded-md"/>
+                        <input type="text" inputMode="numeric" maxLength={2} name="day" placeholder="日" value={filters.day} onChange={handleFilterChange} className="p-2 border rounded-md"/>
                         <select name="status" value={filters.status} onChange={handleFilterChange} className="col-span-2 sm:col-span-2 p-2 border rounded-md">
                             <option value="">全部狀態</option>
                             <option value={ApplicationStatus.Passed}>通過</option>
@@ -175,7 +153,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
                     />
                 )) : (
                     <div className="text-center py-10 bg-white rounded-lg shadow-md">
-                        <p className="text-gray-500">沒有符合篩選條件的申請。</p>
+                        <p className="text-gray-500">尚無任何申請紀錄。</p>
                     </div>
                 )}
             </div>
