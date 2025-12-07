@@ -5,7 +5,7 @@ interface CommentModalProps {
     application: Application;
     userRole: UserRole;
     onClose: () => void;
-    onSave: (appId: number, comment: string) => void;
+    onSave: (appId: string, comment: string) => void;
 }
 
 const CommentModal: React.FC<CommentModalProps> = ({ application, userRole, onClose, onSave }) => {
@@ -25,7 +25,9 @@ const CommentModal: React.FC<CommentModalProps> = ({ application, userRole, onCl
                 </div>
 
                 <div className="mb-6">
-                    <h3 className="font-bold text-gray-800 text-lg mb-2">{isTeacher ? '評論' : '評語'}</h3>
+                    <h3 className="font-bold text-gray-800 text-lg mb-2">
+                        {isTeacher ? '評論' : '評語'}
+                    </h3>
                     {isTeacher ? (
                         <textarea
                             value={comment}
@@ -42,14 +44,14 @@ const CommentModal: React.FC<CommentModalProps> = ({ application, userRole, onCl
                 </div>
 
                 <div className="flex justify-end space-x-3">
-                     <button 
-                        onClick={onClose} 
+                    <button
+                        onClick={onClose}
                         className="px-6 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
                     >
                         {isTeacher ? '取消' : '關閉'}
                     </button>
                     {isTeacher && (
-                         <button 
+                        <button
                             onClick={handleSave}
                             className="px-6 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition-colors"
                         >

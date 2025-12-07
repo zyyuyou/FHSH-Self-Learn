@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 
 interface SignaturePadProps {
     label: string;
+    value?: string | null;
+    onChange?: (signature: string | null) => void;
 }
 
 const SignatureModal: React.FC<{
@@ -10,32 +12,61 @@ const SignatureModal: React.FC<{
 }> = ({ onSave, onClose }) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [isDrawing, setIsDrawing] = useState(false);
+    const [isCanvasReady, setIsCanvasReady] = useState(false);
 
     useEffect(() => {
-        const canvas = canvasRef.current;
-        if (canvas) {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-                ctx.strokeStyle = '#000';
-                ctx.lineWidth = 2;
+        // 延遲初始化，等待 modal 動畫完成和 DOM 穩定
+        const initCanvas = () => {
+            const canvas = canvasRef.current;
+            if (canvas) {
+                // 獲取 canvas 的顯示尺寸
+                const rect = canvas.getBoundingClientRect();
+
+                // 設定 canvas 的內部尺寸與顯示尺寸一致
+                // 使用裝置畫素比以獲得更清晰的顯示
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = rect.width * dpr;
+                canvas.height = rect.height * dpr;
+
+                const ctx = canvas.getContext('2d');
+                if (ctx) {
+                    // 縮放 context 以匹配裝置畫素比
+                    ctx.scale(dpr, dpr);
+                    ctx.strokeStyle = '#000';
+                    ctx.lineWidth = 2;
+                    ctx.lineCap = 'round';
+                    ctx.lineJoin = 'round';
+                }
+                setIsCanvasReady(true);
             }
-        }
+        };
+
+        // 使用 setTimeout 確保 DOM 完全渲染和 CSS 動畫完成
+        const timer = setTimeout(initCanvas, 100);
+        return () => clearTimeout(timer);
     }, []);
 
     const getCoords = (event: React.MouseEvent | React.TouchEvent) => {
         const canvas = canvasRef.current;
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
+
+        // 計算相對於 canvas 的座標（已經考慮了 scale）
         if ('touches' in event.nativeEvent) {
-             return { x: event.nativeEvent.touches[0].clientX - rect.left, y: event.nativeEvent.touches[0].clientY - rect.top };
+            return {
+                x: event.nativeEvent.touches[0].clientX - rect.left,
+                y: event.nativeEvent.touches[0].clientY - rect.top,
+            };
         }
-        return { x: event.nativeEvent.clientX - rect.left, y: event.nativeEvent.clientY - rect.top };
+        return {
+            x: (event as React.MouseEvent).clientX - rect.left,
+            y: (event as React.MouseEvent).clientY - rect.top,
+        };
     };
 
     const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
         event.preventDefault();
+        if (!isCanvasReady) return; // 確保 canvas 已初始化
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
         if (!ctx) return;
@@ -64,7 +95,7 @@ const SignatureModal: React.FC<{
         }
         setIsDrawing(false);
     };
-    
+
     const clearCanvas = () => {
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
@@ -72,7 +103,7 @@ const SignatureModal: React.FC<{
             ctx.clearRect(0, 0, canvas.width, canvas.height);
         }
     };
-    
+
     const handleSave = () => {
         const canvas = canvasRef.current;
         if (canvas) {
@@ -96,10 +127,28 @@ const SignatureModal: React.FC<{
                     onTouchEnd={stopDrawing}
                 />
                 <div className="flex justify-between mt-4">
-                    <button onClick={clearCanvas} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">清除</button>
+                    <button
+                        type="button"
+                        onClick={clearCanvas}
+                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                    >
+                        清除
+                    </button>
                     <div>
-                         <button onClick={onClose} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-2">取消</button>
-                        <button onClick={handleSave} className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">儲存</button>
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-2"
+                        >
+                            取消
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleSave}
+                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                        >
+                            儲存
+                        </button>
                     </div>
                 </div>
             </div>
@@ -107,30 +156,24 @@ const SignatureModal: React.FC<{
     );
 };
 
-
-const SignaturePad: React.FC<SignaturePadProps> = ({ label }) => {
-    const [signature, setSignature] = useState<string | null>(null);
+const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange }) => {
+    const [signature, setSignature] = useState<string | null>(value || null);
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setSignature(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
-    const triggerFileUpload = () => {
-        fileInputRef.current?.click();
-    };
+    // 同步外部 value 變化
+    React.useEffect(() => {
+        setSignature(value || null);
+    }, [value]);
 
     const handleSaveSignature = (dataUrl: string) => {
         setSignature(dataUrl);
+        onChange?.(dataUrl);
         setIsModalOpen(false);
+    };
+
+    const handleClearSignature = () => {
+        setSignature(null);
+        onChange?.(null);
     };
 
     return (
@@ -138,32 +181,36 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label }) => {
             <label className="block text-sm font-medium text-gray-900 mb-2">{label}</label>
             {signature ? (
                 <div className="flex flex-col items-center">
-                    <img src={signature} alt="Signature" className="border rounded-md max-h-24 bg-white" />
-                    <button 
-                        onClick={() => setSignature(null)} 
+                    <img
+                        src={signature}
+                        alt="Signature"
+                        className="border rounded-md max-h-24 bg-white"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleClearSignature}
                         className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
                     >
                         清除簽名
                     </button>
                 </div>
             ) : (
-                <div className="flex gap-2">
-                    <button type="button" onClick={() => setIsModalOpen(true)} className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                <div>
+                    <button
+                        type="button"
+                        onClick={() => setIsModalOpen(true)}
+                        className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
+                    >
                         手寫簽名
                     </button>
-                    <button type="button" onClick={triggerFileUpload} className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300">
-                        上傳檔案
-                    </button>
-                    <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        accept="image/*"
-                        className="hidden"
-                    />
                 </div>
             )}
-            {isModalOpen && <SignatureModal onSave={handleSaveSignature} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && (
+                <SignatureModal
+                    onSave={handleSaveSignature}
+                    onClose={() => setIsModalOpen(false)}
+                />
+            )}
         </div>
     );
 };

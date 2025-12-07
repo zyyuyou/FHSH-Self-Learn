@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+    # MongoDB 資料庫
+    mongodb:
+        image: mongo:7.0
+        container_name: self-learning-mongodb
+        restart: unless-stopped
+        ports:
+            - "27017:27017"
+        environment:
+            MONGO_INITDB_DATABASE: self_learning_system
+        volumes:
+            - mongodb_data:/data/db
+            - mongodb_config:/data/configdb
+        networks:
+            - self-learning-network
+
+    # FastAPI 後端應用
+    backend:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        container_name: self-learning-backend
+        restart: unless-stopped
+        ports:
+            - "8000:8000"
+        environment:
+            - MONGODB_URL=mongodb://mongodb:27017
+            - MONGODB_DB_NAME=self_learning_system
+            - DEBUG=True
+        volumes:
+            - ./uploads:/app/uploads
+            - ./app:/app/app  # 開發時熱過載
+        depends_on:
+            - mongodb
+        networks:
+            - self-learning-network
+        command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+    mongodb_data:
+        driver: local
+    mongodb_config:
+        driver: local
+
+networks:
+    self-learning-network:
+        driver: bridge

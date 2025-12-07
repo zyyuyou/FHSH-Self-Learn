@@ -1,0 +1,36 @@
+# FastAPI and server
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# MongoDB ODM - Beanie
+beanie==1.26.0
+motor==3.7.0  # Beanie 依賴 motor
+
+# Authentication and security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+bcrypt==4.0.1
+python-multipart==0.0.20
+
+# Data validation and serialization
+pydantic==2.10.5
+pydantic-settings==2.7.1
+email-validator==2.2.0
+
+# Date and time
+python-dateutil==2.9.0
+
+# Excel file processing (for importing student data)
+pandas==2.3.3
+openpyxl==3.1.5
+
+# Environment variables
+python-dotenv==1.0.1
+
+# CORS
+fastapi-cors==0.0.6
+
+# PDF generation (Word template to PDF)
+docxtpl==0.18.0
+python-docx==1.1.2
+Pillow==11.0.0  # For image processing in documents
