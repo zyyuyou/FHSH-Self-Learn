@@ -10,12 +10,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1
 
-# 安裝系統依賴（包含 LibreOffice 用於 PDF 轉換）
-RUN apt-get update && apt-get install -y \
+# 更換為美國的 Debian 鏡像以解決網路問題
+RUN echo "deb http://ftp.us.debian.org/debian/ trixie main" > /etc/apt/sources.list && \
+    echo "deb http://ftp.us.debian.org/debian/ trixie-updates main" >> /etc/apt/sources.list && \
+    echo "deb http://security.debian.org/debian-security trixie-security main" >> /etc/apt/sources.list
+
+# 安裝系統依賴（包含 LibreOffice 和中文字體）
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     curl \
     libreoffice \
     libreoffice-writer \
+    fonts-noto-cjk \
     && rm -rf /var/lib/apt/lists/*
 
 # 複製依賴檔案

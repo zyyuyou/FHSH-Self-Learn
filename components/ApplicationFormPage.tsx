@@ -675,6 +675,7 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                                     type="number"
                                     value={item.hours}
                                     onChange={(e) => handlePlanItemChange(item.id, 'hours', e.target.value)}
+                                    onWheel={(e) => (e.target as HTMLElement).blur()}
                                     placeholder="例如: 2"
                                 />
                             </div>

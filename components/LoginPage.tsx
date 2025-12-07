@@ -27,9 +27,6 @@ const LoginCard: React.FC<{
 
     return (
         <GlassCard className="p-8 mb-8" hover glow={accentColor === 'blue' ? 'blue' : 'purple'}>
-            {/* Accent gradient at top */}
-            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradients[accentColor]} rounded-t-2xl`} />
-
             <div className="flex items-center gap-4 mb-6">
                 <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradients[accentColor]} flex items-center justify-center backdrop-blur-xl border border-white/10`}>
                     {icon}
@@ -139,7 +136,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLogin }) => {
                             臺北市立復興高級中學
                         </h1>
                         <p className="text-lg sm:text-xl text-white/60">
-                            自主學習計畫 學生申請系統
+                            自主學習申請系統
                         </p>
 
                         {/* Decorative elements */}

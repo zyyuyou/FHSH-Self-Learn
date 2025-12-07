@@ -3,7 +3,7 @@
 """
 from typing import List, Optional, Dict
 from enum import Enum
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from .base import Document, TimestampMixin
 
 
@@ -107,6 +107,15 @@ class Application(Document, TimestampMixin):
     # 提交者資訊
     submitter_id: str = Field(..., description="提交者使用者ID")
     submitter_student_id: str = Field(..., description="提交者學號")
+
+    @field_validator("status", mode="before")
+    @classmethod
+    def normalize_status(cls, v: str) -> str:
+        if v == "通過":
+            return "透過"
+        if v == "未通過":
+            return "未透過"
+        return v
 
     class Settings:
         name = "applications"  # MongoDB 集合名稱
