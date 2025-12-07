@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { GlassModal, GlassInput, GlassButton, GlassAlert } from './ui/GlassUI';
 
 interface ChangePasswordModalProps {
     onClose: () => void;
@@ -16,7 +17,6 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose, onSa
         e.preventDefault();
         setError('');
 
-        // 驗證
         if (!oldPassword || !newPassword || !confirmPassword) {
             setError('請填寫所有欄位');
             return;
@@ -49,86 +49,76 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ onClose, onSa
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-800">更改密碼</h2>
-                    <button
+        <GlassModal isOpen={true} onClose={onClose} title="更改密碼" size="md">
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <GlassInput
+                    label="舊密碼"
+                    type="password"
+                    value={oldPassword}
+                    onChange={(e) => setOldPassword(e.target.value)}
+                    disabled={loading}
+                    placeholder="請輸入目前的密碼"
+                    icon={
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                    }
+                />
+
+                <GlassInput
+                    label="新密碼"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={loading}
+                    placeholder="請輸入新密碼 (至少6個字元)"
+                    icon={
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                    }
+                />
+
+                <GlassInput
+                    label="確認新密碼"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                    placeholder="請再次輸入新密碼"
+                    icon={
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    }
+                />
+
+                {error && (
+                    <GlassAlert variant="error">
+                        {error}
+                    </GlassAlert>
+                )}
+
+                <div className="flex justify-end gap-3 pt-4">
+                    <GlassButton
+                        type="button"
+                        variant="ghost"
                         onClick={onClose}
-                        className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
                         disabled={loading}
                     >
-                        &times;
-                    </button>
+                        取消
+                    </GlassButton>
+                    <GlassButton
+                        type="submit"
+                        variant="primary"
+                        disabled={loading}
+                        loading={loading}
+                    >
+                        {loading ? '更改中...' : '確認更改'}
+                    </GlassButton>
                 </div>
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            舊密碼
-                        </label>
-                        <input
-                            type="password"
-                            value={oldPassword}
-                            onChange={(e) => setOldPassword(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={loading}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            新密碼
-                        </label>
-                        <input
-                            type="password"
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={loading}
-                        />
-                        <p className="text-xs text-gray-500 mt-1">密碼長度至少6個字元</p>
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                            確認新密碼
-                        </label>
-                        <input
-                            type="password"
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            disabled={loading}
-                        />
-                    </div>
-
-                    {error && (
-                        <div className="p-3 bg-red-100 border border-red-400 text-red-700 rounded">
-                            {error}
-                        </div>
-                    )}
-
-                    <div className="flex justify-end space-x-3 mt-6">
-                        <button
-                            type="button"
-                            onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                            disabled={loading}
-                        >
-                            取消
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-blue-300"
-                            disabled={loading}
-                        >
-                            {loading ? '更改中...' : '確認更改'}
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+            </form>
+        </GlassModal>
     );
 };
 

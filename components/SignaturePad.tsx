@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { GlassCard, GlassButton, GlassModal } from './ui/GlassUI';
 
 interface SignaturePadProps {
     label: string;
@@ -15,24 +16,18 @@ const SignatureModal: React.FC<{
     const [isCanvasReady, setIsCanvasReady] = useState(false);
 
     useEffect(() => {
-        // 延遲初始化，等待 modal 動畫完成和 DOM 穩定
         const initCanvas = () => {
             const canvas = canvasRef.current;
             if (canvas) {
-                // 獲取 canvas 的顯示尺寸
                 const rect = canvas.getBoundingClientRect();
-
-                // 設定 canvas 的內部尺寸與顯示尺寸一致
-                // 使用裝置畫素比以獲得更清晰的顯示
                 const dpr = window.devicePixelRatio || 1;
                 canvas.width = rect.width * dpr;
                 canvas.height = rect.height * dpr;
 
                 const ctx = canvas.getContext('2d');
                 if (ctx) {
-                    // 縮放 context 以匹配裝置畫素比
                     ctx.scale(dpr, dpr);
-                    ctx.strokeStyle = '#000';
+                    ctx.strokeStyle = '#fff';
                     ctx.lineWidth = 2;
                     ctx.lineCap = 'round';
                     ctx.lineJoin = 'round';
@@ -41,7 +36,6 @@ const SignatureModal: React.FC<{
             }
         };
 
-        // 使用 setTimeout 確保 DOM 完全渲染和 CSS 動畫完成
         const timer = setTimeout(initCanvas, 100);
         return () => clearTimeout(timer);
     }, []);
@@ -51,7 +45,6 @@ const SignatureModal: React.FC<{
         if (!canvas) return { x: 0, y: 0 };
         const rect = canvas.getBoundingClientRect();
 
-        // 計算相對於 canvas 的座標（已經考慮了 scale）
         if ('touches' in event.nativeEvent) {
             return {
                 x: event.nativeEvent.touches[0].clientX - rect.left,
@@ -66,7 +59,7 @@ const SignatureModal: React.FC<{
 
     const startDrawing = (event: React.MouseEvent | React.TouchEvent) => {
         event.preventDefault();
-        if (!isCanvasReady) return; // 確保 canvas 已初始化
+        if (!isCanvasReady) return;
         const canvas = canvasRef.current;
         const ctx = canvas?.getContext('2d');
         if (!ctx) return;
@@ -112,12 +105,11 @@ const SignatureModal: React.FC<{
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-            <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
-                <h3 className="text-lg font-bold text-gray-800 mb-4">請在此簽名</h3>
+        <GlassModal isOpen={true} onClose={onClose} title="請在此簽名" size="md">
+            <div className="space-y-4">
                 <canvas
                     ref={canvasRef}
-                    className="w-full h-48 border border-gray-300 rounded-md bg-gray-50 cursor-crosshair touch-none"
+                    className="w-full h-48 rounded-xl bg-white/[0.05] border border-white/[0.15] cursor-crosshair touch-none"
                     onMouseDown={startDrawing}
                     onMouseMove={draw}
                     onMouseUp={stopDrawing}
@@ -126,33 +118,39 @@ const SignatureModal: React.FC<{
                     onTouchMove={draw}
                     onTouchEnd={stopDrawing}
                 />
-                <div className="flex justify-between mt-4">
-                    <button
+                <div className="flex justify-between">
+                    <GlassButton
                         type="button"
+                        variant="ghost"
                         onClick={clearCanvas}
-                        className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
                     >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
                         清除
-                    </button>
-                    <div>
-                        <button
+                    </GlassButton>
+                    <div className="flex gap-2">
+                        <GlassButton
                             type="button"
+                            variant="ghost"
                             onClick={onClose}
-                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-2"
                         >
                             取消
-                        </button>
-                        <button
+                        </GlassButton>
+                        <GlassButton
                             type="button"
+                            variant="primary"
                             onClick={handleSave}
-                            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
                         >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
                             儲存
-                        </button>
+                        </GlassButton>
                     </div>
                 </div>
             </div>
-        </div>
+        </GlassModal>
     );
 };
 
@@ -160,7 +158,6 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange }) =
     const [signature, setSignature] = useState<string | null>(value || null);
     const [isModalOpen, setIsModalOpen] = useState(false);
 
-    // 同步外部 value 變化
     React.useEffect(() => {
         setSignature(value || null);
     }, [value]);
@@ -177,33 +174,40 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange }) =
     };
 
     return (
-        <div className="border border-gray-200 rounded-lg p-4">
-            <label className="block text-sm font-medium text-gray-900 mb-2">{label}</label>
+        <GlassCard className="p-4">
+            <label className="block text-sm font-medium text-white/70 mb-3">{label}</label>
             {signature ? (
                 <div className="flex flex-col items-center">
-                    <img
-                        src={signature}
-                        alt="Signature"
-                        className="border rounded-md max-h-24 bg-white"
-                    />
+                    <div className="w-full p-2 rounded-lg bg-white/5 border border-white/10">
+                        <img
+                            src={signature}
+                            alt="Signature"
+                            className="max-h-20 mx-auto"
+                        />
+                    </div>
                     <button
                         type="button"
                         onClick={handleClearSignature}
-                        className="mt-2 text-sm text-red-600 hover:text-red-800 font-medium"
+                        className="mt-2 text-sm text-red-400 hover:text-red-300 font-medium flex items-center gap-1 transition-colors"
                     >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
                         清除簽名
                     </button>
                 </div>
             ) : (
-                <div>
-                    <button
-                        type="button"
-                        onClick={() => setIsModalOpen(true)}
-                        className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                    >
-                        手寫簽名
-                    </button>
-                </div>
+                <GlassButton
+                    type="button"
+                    variant="default"
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-full"
+                >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                    </svg>
+                    手寫簽名
+                </GlassButton>
             )}
             {isModalOpen && (
                 <SignatureModal
@@ -211,7 +215,7 @@ const SignaturePad: React.FC<SignaturePadProps> = ({ label, value, onChange }) =
                     onClose={() => setIsModalOpen(false)}
                 />
             )}
-        </div>
+        </GlassCard>
     );
 };
 

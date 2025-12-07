@@ -2,6 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Application } from '../types';
 import SignaturePad from './SignaturePad';
 import api from '../services/api';
+import {
+    GlassCard,
+    GlassInput,
+    GlassTextarea,
+    GlassButton,
+    GlassCheckbox,
+    GlassRadio,
+    GlassSection,
+    GlassAlert,
+    GlassBadge,
+} from './ui/GlassUI';
 
 interface ApplicationFormPageProps {
     applicationToEdit: Application | null;
@@ -15,165 +26,6 @@ interface Member {
     studentName: string;
     hasSubmitted: string;
 }
-
-const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-    <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-        <h2 className="text-xl font-bold text-gray-800 border-b-2 border-blue-200 pb-2 mb-4">
-            {title}
-        </h2>
-        {children}
-    </div>
-);
-
-const InputField: React.FC<{
-    label: string;
-    id: string;
-    type?: string;
-    placeholder?: string;
-    required?: boolean;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
-    max?: string;
-    error?: string;
-    disabled?: boolean;
-}> = ({ label, id, error, disabled, ...props }) => (
-    <div className="mb-4">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-            {label}
-        </label>
-        <input
-            id={id}
-            {...props}
-            disabled={disabled}
-            className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-                error ? 'border-red-500' : 'border-gray-300'
-            } ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
-        />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-    </div>
-);
-
-const TextAreaField: React.FC<{
-    label: string;
-    id: string;
-    rows?: number;
-    placeholder?: string;
-    value: string;
-    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
-    error?: string;
-}> = ({ label, id, rows = 3, error, ...props }) => (
-    <div className="mb-4">
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
-            {label}
-        </label>
-        <textarea
-            id={id}
-            rows={rows}
-            {...props}
-            className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${error ? 'border-red-500' : 'border-gray-300'}`}
-        />
-        {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-    </div>
-);
-
-const RadioGroup: React.FC<{
-    legend: string;
-    name: string;
-    options: string[];
-    selectedValue: string | null;
-    onChange: (value: string) => void;
-}> = ({ legend, name, options, selectedValue, onChange }) => (
-    <fieldset className="mb-4">
-        <legend className="block text-sm font-medium text-gray-700 mb-2">{legend}</legend>
-        <div className="flex items-center space-x-4">
-            {options.map((option) => (
-                <div key={option} className="flex items-center">
-                    <input
-                        id={`${name}-${option}`}
-                        name={name}
-                        type="radio"
-                        value={option}
-                        checked={selectedValue === option}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300"
-                    />
-                    <label
-                        htmlFor={`${name}-${option}`}
-                        className="ml-2 block text-sm text-gray-900"
-                    >
-                        {option}
-                    </label>
-                </div>
-            ))}
-        </div>
-    </fieldset>
-);
-
-const StudentInfo: React.FC<{
-    title: string;
-    memberIndex: number;
-    memberData: Member;
-    onChange: (index: number, field: keyof Member, value: string) => void;
-    onStudentIdBlur: (index: number, studentId: string) => void;
-}> = ({ title, memberIndex, memberData, onChange, onStudentIdBlur }) => (
-    <div className="border border-gray-200 rounded-lg p-4 mb-4">
-        <h3 className="font-semibold text-gray-700 mb-2">{title}</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InputField
-                label="學號"
-                id={`s-id-${memberIndex}`}
-                value={memberData.studentId}
-                onChange={(e) => onChange(memberIndex, 'studentId', e.target.value)}
-                onBlur={(e) => onStudentIdBlur(memberIndex, e.target.value)}
-            />
-            <InputField
-                label="姓名"
-                id={`s-name-${memberIndex}`}
-                value={memberData.studentName}
-                onChange={(e) => {}}
-                disabled
-            />
-            <InputField
-                label="班級"
-                id={`s-class-${memberIndex}`}
-                value={memberData.studentClass}
-                onChange={(e) => {}}
-                disabled
-            />
-            <InputField
-                label="座號"
-                id={`s-seat-${memberIndex}`}
-                value={memberData.studentSeat}
-                onChange={(e) => {}}
-                disabled
-            />
-        </div>
-        <div className="mt-4">
-            <p className="text-sm font-medium text-gray-700 mb-2">是否繳交過自主學習成果</p>
-            <div className="flex items-center space-x-6">
-                <label className="flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={memberData.hasSubmitted === '是'}
-                        onChange={() => onChange(memberIndex, 'hasSubmitted', memberData.hasSubmitted === '是' ? '' : '是')}
-                        className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">是</span>
-                </label>
-                <label className="flex items-center cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={memberData.hasSubmitted === '否'}
-                        onChange={() => onChange(memberIndex, 'hasSubmitted', memberData.hasSubmitted === '否' ? '' : '否')}
-                        className="mr-2 h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                    />
-                    <span className="text-sm text-gray-700">否</span>
-                </label>
-            </div>
-        </div>
-    </div>
-);
 
 interface PlanItem {
     id: number;
@@ -191,6 +43,73 @@ interface Reference {
     link: string;
 }
 
+// Student Info Component with Glass styling
+const StudentInfo: React.FC<{
+    title: string;
+    memberIndex: number;
+    memberData: Member;
+    onChange: (index: number, field: keyof Member, value: string) => void;
+    onStudentIdBlur: (index: number, studentId: string) => void;
+}> = ({ title, memberIndex, memberData, onChange, onStudentIdBlur }) => (
+    <GlassCard className="p-5 mb-4">
+        <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+            <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center text-sm border border-white/10">
+                {memberIndex === 0 ? '長' : memberIndex}
+            </span>
+            {title}
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <GlassInput
+                label="學號"
+                id={`s-id-${memberIndex}`}
+                value={memberData.studentId}
+                onChange={(e) => onChange(memberIndex, 'studentId', e.target.value)}
+                onBlur={(e) => onStudentIdBlur(memberIndex, e.target.value)}
+                placeholder="輸入學號後自動帶入資料"
+            />
+            <GlassInput
+                label="姓名"
+                id={`s-name-${memberIndex}`}
+                value={memberData.studentName}
+                onChange={() => {}}
+                disabled
+                placeholder="自動帶入"
+            />
+            <GlassInput
+                label="班級"
+                id={`s-class-${memberIndex}`}
+                value={memberData.studentClass}
+                onChange={() => {}}
+                disabled
+                placeholder="自動帶入"
+            />
+            <GlassInput
+                label="座號"
+                id={`s-seat-${memberIndex}`}
+                value={memberData.studentSeat}
+                onChange={() => {}}
+                disabled
+                placeholder="自動帶入"
+            />
+        </div>
+        <div className="mt-4">
+            <p className="text-sm font-medium text-white/70 mb-3">是否繳交過自主學習成果</p>
+            <div className="flex items-center gap-6">
+                <GlassCheckbox
+                    label="是"
+                    checked={memberData.hasSubmitted === '是'}
+                    onChange={() => onChange(memberIndex, 'hasSubmitted', memberData.hasSubmitted === '是' ? '' : '是')}
+                />
+                <GlassCheckbox
+                    label="否"
+                    checked={memberData.hasSubmitted === '否'}
+                    onChange={() => onChange(memberIndex, 'hasSubmitted', memberData.hasSubmitted === '否' ? '' : '否')}
+                />
+            </div>
+        </div>
+    </GlassCard>
+);
+
 const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationToEdit, onSubmitSuccess }) => {
     const [projectTitle, setProjectTitle] = useState('');
     const [members, setMembers] = useState<Member[]>(() =>
@@ -205,9 +124,7 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
             }))
     );
     const [motivation, setMotivation] = useState('');
-    const [learningCategoriesChecked, setLearningCategoriesChecked] = useState<
-        Record<string, boolean>
-    >({});
+    const [learningCategoriesChecked, setLearningCategoriesChecked] = useState<Record<string, boolean>>({});
     const [learningCategoryOther, setLearningCategoryOther] = useState('');
     const [references, setReferences] = useState<Reference[]>([
         { id: Date.now(), bookTitle: '', author: '', publisher: '', link: '' },
@@ -246,6 +163,18 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
 
+    const learningCategories = [
+        '閱讀計畫',
+        '專題研究',
+        '技藝學習',
+        '實作體驗',
+        '志工服務',
+        '藝文創作',
+        '競賽準備',
+        '課程延伸',
+    ];
+    const envNeeds = ['自習室', '數位閱讀室', '雲端教室', '美力教室'];
+
     const handleMemberChange = (index: number, field: keyof Member, value: string) => {
         const newMembers = [...members];
         newMembers[index] = { ...newMembers[index], [field]: value };
@@ -269,7 +198,6 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                 };
                 setMembers(newMembers);
             } else {
-                // 如果找不到學生，清空其他欄位
                 const newMembers = [...members];
                 newMembers[index] = {
                     ...newMembers[index],
@@ -286,14 +214,12 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
         }
     };
 
-    const handleLearningCategoryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, checked } = e.target;
-        setLearningCategoriesChecked((prev) => ({ ...prev, [name]: checked }));
+    const handleLearningCategoryChange = (category: string, checked: boolean) => {
+        setLearningCategoriesChecked((prev) => ({ ...prev, [category]: checked }));
     };
 
-    const handleEnvNeedChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, checked } = e.target;
-        setEnvNeedsChecked((prev) => ({ ...prev, [name]: checked }));
+    const handleEnvNeedChange = (env: string, checked: boolean) => {
+        setEnvNeedsChecked((prev) => ({ ...prev, [env]: checked }));
     };
 
     const handlePlanItemChange = (id: number, field: keyof Omit<PlanItem, 'id'>, value: string) => {
@@ -311,9 +237,7 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
     useEffect(() => {
         if (applicationToEdit) {
             setProjectTitle(applicationToEdit.title);
-            // Here you would populate the rest of the form fields from applicationToEdit
         } else {
-            // Clear fields for a new form
             setProjectTitle('');
             setMembers(
                 Array(3)
@@ -322,7 +246,8 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                         studentId: '',
                         studentClass: '',
                         studentSeat: '',
-                        hasSubmitted: null,
+                        studentName: '',
+                        hasSubmitted: '',
                     }))
             );
             setMotivation('');
@@ -360,21 +285,6 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
         }
     }, [applicationToEdit]);
 
-    const addPlanItem = () => {
-        if (planItems.length >= 9) {
-            alert('學習內容規劃最多隻能新增9個項次');
-            return;
-        }
-        setPlanItems([
-            ...planItems,
-            { id: Date.now(), date: '', content: '', hours: '', metric: '' },
-        ]);
-    };
-
-    const removePlanItem = (id: number) => {
-        setPlanItems(planItems.filter((item) => item.id !== id));
-    };
-
     const addReference = () => {
         setReferences([
             ...references,
@@ -389,18 +299,6 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
     const handleSignatureChange = (label: string, value: string | null) => {
         setSignatures((prev) => ({ ...prev, [label]: value }));
     };
-
-    const learningCategories = [
-        '閱讀計畫',
-        '專題研究',
-        '技藝學習',
-        '實作體驗',
-        '志工服務',
-        '藝文創作',
-        '競賽準備',
-        '課程延伸',
-    ];
-    const envNeeds = ['自習室', '數位閱讀室', '雲端教室', '美力教室'];
 
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
@@ -420,7 +318,6 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
             newErrors.learningCategory = '請至少選擇一個學習類別';
         }
 
-        // 驗證參考資料
         let hasIncompleteReference = false;
         references.forEach((ref) => {
             if (!ref.bookTitle.trim() || !ref.author.trim() || !ref.publisher.trim()) {
@@ -494,14 +391,13 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
         setSubmitSuccess(false);
 
         try {
-            // 準備提交資料 - 轉換為後端期望的格式
-            const currentDate = new Date().toISOString().split('T')[0]; // 當前日期
+            const currentDate = new Date().toISOString().split('T')[0];
             const applicationData = {
                 title: projectTitle,
-                apply_date_start: currentDate, // 申請日期
-                apply_date_end: currentDate, // 申請日期（相容後端欄位）
+                apply_date_start: currentDate,
+                apply_date_end: currentDate,
                 members: members
-                    .filter((m) => m.studentId || m.studentClass || m.studentSeat) // 只提交有資料的成員
+                    .filter((m) => m.studentId || m.studentClass || m.studentSeat)
                     .map((m) => ({
                         student_id: m.studentId,
                         student_class: m.studentClass,
@@ -541,13 +437,11 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     })),
             };
 
-            // 呼叫 API 建立申請表
             await api.createApplication(applicationData);
 
             setSubmitSuccess(true);
             alert('計畫已成功送出！請到歷史紀錄檢視');
 
-            // 呼叫成功回撥，導航到歷史記錄頁面
             if (onSubmitSuccess) {
                 setTimeout(() => {
                     onSubmitSuccess();
@@ -561,20 +455,24 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
         }
     };
 
+    // Calculate total hours
+    const totalHours = planItems.reduce((sum, item) => sum + (Number(item.hours) || 0), 0);
+
     return (
         <form onSubmit={(e) => e.preventDefault()}>
-            <Section title="自主學習計畫名稱">
-                <InputField
-                    label=""
+            {/* Project Title */}
+            <GlassSection title="自主學習計畫名稱">
+                <GlassInput
                     id="project-title"
                     placeholder="請輸入計畫名稱"
                     value={projectTitle}
                     onChange={(e) => setProjectTitle(e.target.value)}
                     error={errors.projectTitle}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="學生資料 (小組至多3人,可共用1份)">
+            {/* Student Info */}
+            <GlassSection title="學生資料 (小組至多3人,可共用1份)">
                 <StudentInfo
                     title="組長"
                     memberIndex={0}
@@ -596,38 +494,33 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     onChange={handleMemberChange}
                     onStudentIdBlur={handleStudentIdBlur}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="學習動機">
-                <TextAreaField
-                    label=""
+            {/* Motivation */}
+            <GlassSection title="學習動機">
+                <GlassTextarea
                     id="motivation"
                     value={motivation}
                     onChange={(e) => setMotivation(e.target.value)}
                     placeholder="請描述您的學習動機..."
+                    rows={4}
                     error={errors.motivation}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="學習類別">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Learning Categories */}
+            <GlassSection title="學習類別">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {learningCategories.map((cat) => (
-                        <div key={cat} className="flex items-center">
-                            <input
-                                id={cat}
-                                name={cat}
-                                type="checkbox"
-                                checked={!!learningCategoriesChecked[cat]}
-                                onChange={handleLearningCategoryChange}
-                                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                            />
-                            <label htmlFor={cat} className="ml-2 block text-sm text-gray-900">
-                                {cat}
-                            </label>
-                        </div>
+                        <GlassCheckbox
+                            key={cat}
+                            label={cat}
+                            checked={!!learningCategoriesChecked[cat]}
+                            onChange={(checked) => handleLearningCategoryChange(cat, checked)}
+                        />
                     ))}
                 </div>
-                <InputField
+                <GlassInput
                     label="其他"
                     id="category-other"
                     placeholder="請說明"
@@ -635,70 +528,77 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     onChange={(e) => setLearningCategoryOther(e.target.value)}
                 />
                 {errors.learningCategory && (
-                    <p className="mt-2 text-sm text-red-600">{errors.learningCategory}</p>
+                    <p className="mt-2 text-sm text-red-400">{errors.learningCategory}</p>
                 )}
-            </Section>
+            </GlassSection>
 
-            <Section title="學習方法(參考資料)">
+            {/* References */}
+            <GlassSection title="學習方法(參考資料)">
                 {references.map((ref, index) => (
-                    <div key={ref.id} className="relative border rounded-lg p-4 mb-4 pr-12">
-                        <h4 className="font-semibold text-gray-600 mb-2">參考資料 {index + 1}</h4>
-                        <InputField
-                            label="書名"
-                            id={`ref-title-${ref.id}`}
-                            value={ref.bookTitle}
-                            onChange={(e) => handleReferenceChange(ref.id, 'bookTitle', e.target.value)}
-                            placeholder="請輸入書名"
-                            required
-                        />
-                        <InputField
-                            label="作者"
-                            id={`ref-author-${ref.id}`}
-                            value={ref.author}
-                            onChange={(e) => handleReferenceChange(ref.id, 'author', e.target.value)}
-                            placeholder="請輸入作者"
-                            required
-                        />
-                        <InputField
-                            label="出版社"
-                            id={`ref-publisher-${ref.id}`}
-                            value={ref.publisher}
-                            onChange={(e) => handleReferenceChange(ref.id, 'publisher', e.target.value)}
-                            placeholder="請輸入出版社"
-                            required
-                        />
-                        <InputField
-                            label="連結（電子書籍或電子期刊請加放連結）"
-                            id={`ref-link-${ref.id}`}
-                            value={ref.link}
-                            onChange={(e) => handleReferenceChange(ref.id, 'link', e.target.value)}
-                            placeholder="https://..."
-                        />
-                        {references.length > 1 && (
-                            <button
-                                type="button"
-                                onClick={() => removeReference(ref.id)}
-                                className="absolute top-3 right-3 text-red-500 hover:text-red-700 text-2xl font-bold leading-none"
-                            >
-                                &times;
-                            </button>
-                        )}
-                    </div>
+                    <GlassCard key={ref.id} className="p-5 mb-4 relative">
+                        <div className="flex items-center justify-between mb-4">
+                            <h4 className="font-semibold text-white/80 flex items-center gap-2">
+                                <GlassBadge variant="info">資料 {index + 1}</GlassBadge>
+                            </h4>
+                            {references.length > 1 && (
+                                <GlassButton
+                                    variant="danger"
+                                    size="icon"
+                                    onClick={() => removeReference(ref.id)}
+                                    className="!rounded-lg !w-8 !h-8"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </GlassButton>
+                            )}
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <GlassInput
+                                label="書名"
+                                id={`ref-title-${ref.id}`}
+                                value={ref.bookTitle}
+                                onChange={(e) => handleReferenceChange(ref.id, 'bookTitle', e.target.value)}
+                                placeholder="請輸入書名"
+                            />
+                            <GlassInput
+                                label="作者"
+                                id={`ref-author-${ref.id}`}
+                                value={ref.author}
+                                onChange={(e) => handleReferenceChange(ref.id, 'author', e.target.value)}
+                                placeholder="請輸入作者"
+                            />
+                            <GlassInput
+                                label="出版社"
+                                id={`ref-publisher-${ref.id}`}
+                                value={ref.publisher}
+                                onChange={(e) => handleReferenceChange(ref.id, 'publisher', e.target.value)}
+                                placeholder="請輸入出版社"
+                            />
+                            <GlassInput
+                                label="連結 (選填)"
+                                id={`ref-link-${ref.id}`}
+                                value={ref.link}
+                                onChange={(e) => handleReferenceChange(ref.id, 'link', e.target.value)}
+                                placeholder="https://..."
+                            />
+                        </div>
+                    </GlassCard>
                 ))}
-                <button
-                    type="button"
-                    onClick={addReference}
-                    className="mt-2 text-sm text-blue-600 hover:text-blue-800 font-medium"
-                >
-                    + 新增參考資料
-                </button>
+                <GlassButton variant="ghost" onClick={addReference} className="mt-2">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                    </svg>
+                    新增參考資料
+                </GlassButton>
                 {errors.references && (
-                    <p className="mt-2 text-sm text-red-600">{errors.references}</p>
+                    <p className="mt-2 text-sm text-red-400">{errors.references}</p>
                 )}
-            </Section>
+            </GlassSection>
 
-            <Section title="預期成效">
-                <TextAreaField
+            {/* Expected Outcome */}
+            <GlassSection title="預期成效">
+                <GlassTextarea
                     label="寫下本階段自主學習你預計達到什麼成果"
                     id="expected-outcome"
                     value={expectedOutcome}
@@ -707,11 +607,11 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     rows={4}
                     error={errors.expectedOutcome}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="學習裝置需求">
-                <TextAreaField
-                    label=""
+            {/* Equipment Needs */}
+            <GlassSection title="學習裝置需求">
+                <GlassTextarea
                     id="equipment-needs"
                     value={equipmentNeeds}
                     onChange={(e) => setEquipmentNeeds(e.target.value)}
@@ -719,90 +619,94 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     rows={3}
                     error={errors.equipmentNeeds}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="學習環境需求">
-                <h4 className="font-medium text-gray-600 mb-2">A. 圖書館場地</h4>
+            {/* Environment Needs */}
+            <GlassSection title="學習環境需求">
+                <h4 className="font-medium text-white/70 mb-3">A. 圖書館場地</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                     {envNeeds.map((env) => (
-                        <div key={env} className="flex items-center">
-                            <input
-                                id={env}
-                                name={env}
-                                type="checkbox"
-                                checked={!!envNeedsChecked[env]}
-                                onChange={handleEnvNeedChange}
-                                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                            />
-                            <label htmlFor={env} className="ml-2 block text-sm text-gray-900">
-                                {env}
-                            </label>
-                        </div>
+                        <GlassCheckbox
+                            key={env}
+                            label={env}
+                            checked={!!envNeedsChecked[env]}
+                            onChange={(checked) => handleEnvNeedChange(env, checked)}
+                        />
                     ))}
                 </div>
-                <InputField
+                <GlassInput
                     label="B. 其他場地"
                     id="env-other"
                     placeholder="須徵得該場地管理者同意並簽名"
                     value={envOther}
                     onChange={(e) => setEnvOther(e.target.value)}
                 />
-                {errors.envNeeds && <p className="mt-2 text-sm text-red-600">{errors.envNeeds}</p>}
-            </Section>
+                {errors.envNeeds && <p className="mt-2 text-sm text-red-400">{errors.envNeeds}</p>}
+            </GlassSection>
 
-            <Section title="學習內容規劃 (至少需18小時)">
-                <div className="max-h-[26rem] overflow-y-auto border border-gray-200 rounded-lg p-4 bg-gray-50">
+            {/* Learning Plan */}
+            <GlassSection title="學習內容規劃 (至少需18小時)">
+                <div className="flex items-center justify-between mb-4">
+                    <span className="text-white/70">目前總時數：</span>
+                    <GlassBadge variant={totalHours >= 18 ? 'success' : 'warning'}>
+                        {totalHours} / 18 小時
+                    </GlassBadge>
+                </div>
+                <div className="max-h-[32rem] overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                     {planItems.map((item, index) => (
-                        <div key={item.id} className="relative border border-gray-300 bg-white rounded-lg p-4 mb-4">
-                            <h4 className="font-semibold text-gray-600 mb-2">項次 {index + 1}</h4>
-                            <InputField
-                                label="日期"
-                                id={`plan-date-${item.id}`}
-                                type="date"
-                                value={item.date}
-                                onChange={(e) => handlePlanItemChange(item.id, 'date', e.target.value)}
-                                max="9999-12-31"
-                            />
-                            <TextAreaField
+                        <GlassCard key={item.id} className="p-5">
+                            <div className="flex items-center gap-3 mb-4">
+                                <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500/30 to-blue-500/30 flex items-center justify-center text-sm font-semibold text-white border border-white/10">
+                                    {index + 1}
+                                </span>
+                                <span className="text-white/70 text-sm">項次 {index + 1}</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <GlassInput
+                                    label="日期"
+                                    id={`plan-date-${item.id}`}
+                                    type="date"
+                                    value={item.date}
+                                    onChange={(e) => handlePlanItemChange(item.id, 'date', e.target.value)}
+                                />
+                                <GlassInput
+                                    label="時數"
+                                    id={`plan-hours-${item.id}`}
+                                    type="number"
+                                    value={item.hours}
+                                    onChange={(e) => handlePlanItemChange(item.id, 'hours', e.target.value)}
+                                    placeholder="例如: 2"
+                                />
+                            </div>
+                            <GlassTextarea
                                 label="學習內容"
                                 id={`plan-content-${item.id}`}
                                 rows={2}
                                 value={item.content}
-                                onChange={(e) =>
-                                    handlePlanItemChange(item.id, 'content', e.target.value)
-                                }
+                                onChange={(e) => handlePlanItemChange(item.id, 'content', e.target.value)}
                                 placeholder="請描述學習內容"
                             />
-                            <InputField
-                                label="時數"
-                                id={`plan-hours-${item.id}`}
-                                type="number"
-                                value={item.hours}
-                                onChange={(e) => handlePlanItemChange(item.id, 'hours', e.target.value)}
-                                placeholder="例如: 2"
-                            />
-                            <InputField
+                            <GlassInput
                                 label="學生自訂檢核指標"
                                 id={`plan-metric-${item.id}`}
                                 value={item.metric}
-                                onChange={(e) =>
-                                    handlePlanItemChange(item.id, 'metric', e.target.value)
-                                }
+                                onChange={(e) => handlePlanItemChange(item.id, 'metric', e.target.value)}
                                 placeholder="例如: 完成第一章節練習"
                             />
-                        </div>
+                        </GlassCard>
                     ))}
                 </div>
                 {errors.planItems && (
-                    <p className="mt-2 text-sm text-red-600">{errors.planItems}</p>
+                    <GlassAlert variant="error" className="mt-4">{errors.planItems}</GlassAlert>
                 )}
                 {errors.planHours && (
-                    <p className="mt-2 text-sm text-red-600">{errors.planHours}</p>
+                    <GlassAlert variant="warning" className="mt-4">{errors.planHours}</GlassAlert>
                 )}
-            </Section>
+            </GlassSection>
 
-            <Section title="階段中(4周後)預計達成目標">
-                <TextAreaField
+            {/* Midterm Goal */}
+            <GlassSection title="階段中(4周後)預計達成目標">
+                <GlassTextarea
                     label="從質和量兩方面寫下想達到之目標"
                     id="midterm-goal"
                     value={midtermGoal}
@@ -811,10 +715,11 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     rows={4}
                     error={errors.midtermGoal}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="階段末(8周後)預計達成目標">
-                <TextAreaField
+            {/* Final Goal */}
+            <GlassSection title="階段末(8周後)預計達成目標">
+                <GlassTextarea
                     label="從質和量兩方面寫下想達到之目標"
                     id="final-goal"
                     value={finalGoal}
@@ -823,32 +728,23 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     rows={4}
                     error={errors.finalGoal}
                 />
-            </Section>
+            </GlassSection>
 
-            <Section title="成果發表形式">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    {['靜態展', '動態展'].map((format) => (
-                        <div key={format} className="flex items-center">
-                            <input
-                                id={format}
-                                name={format}
-                                type="checkbox"
-                                checked={!!presentationFormats[format]}
-                                onChange={(e) =>
-                                    setPresentationFormats((prev) => ({
-                                        ...prev,
-                                        [format]: e.target.checked,
-                                    }))
-                                }
-                                className="focus:ring-blue-500 h-4 w-4 text-blue-600 border-gray-300 rounded"
-                            />
-                            <label htmlFor={format} className="ml-2 block text-sm text-gray-900">
-                                {format === '靜態展' ? '靜態展 (PPT、書面報告、心得、自我省思…等)' : '動態展 (直播、影片撥放、實際展示、演出…等)'}
-                            </label>
-                        </div>
-                    ))}
+            {/* Presentation Format */}
+            <GlassSection title="成果發表形式">
+                <div className="space-y-4 mb-4">
+                    <GlassCheckbox
+                        label="靜態展 (PPT、書面報告、心得、自我省思…等)"
+                        checked={!!presentationFormats['靜態展']}
+                        onChange={(checked) => setPresentationFormats((prev) => ({ ...prev, '靜態展': checked }))}
+                    />
+                    <GlassCheckbox
+                        label="動態展 (直播、影片撥放、實際展示、演出…等)"
+                        checked={!!presentationFormats['動態展']}
+                        onChange={(checked) => setPresentationFormats((prev) => ({ ...prev, '動態展': checked }))}
+                    />
                 </div>
-                <InputField
+                <GlassInput
                     label="其他"
                     id="presentation-other"
                     placeholder="請說明"
@@ -856,36 +752,43 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     onChange={(e) => setPresentationOther(e.target.value)}
                 />
                 {errors.presentationFormat && (
-                    <p className="mt-2 text-sm text-red-600">{errors.presentationFormat}</p>
+                    <p className="mt-2 text-sm text-red-400">{errors.presentationFormat}</p>
                 )}
-            </Section>
+            </GlassSection>
 
-            <Section title="手機使用規範">
-                <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-700 leading-relaxed">
+            {/* Phone Agreement */}
+            <GlassSection title="手機使用規範">
+                <GlassCard className="p-4 mb-4">
+                    <p className="text-sm text-white/70 leading-relaxed">
                         自主學習時間能自我管理規範，並遵守學校之規定，在自主學習時間開始至結束前不使用個人手機。若有需要搜尋網路資料，自行持學生證至圖書館借用平板電腦。
                     </p>
+                </GlassCard>
+                <div className="flex items-center gap-6 mb-4">
+                    <GlassRadio
+                        label="同意"
+                        name="phone-agreement"
+                        checked={phoneAgreement === '同意'}
+                        onChange={() => setPhoneAgreement('同意')}
+                    />
+                    <GlassRadio
+                        label="不同意"
+                        name="phone-agreement"
+                        checked={phoneAgreement === '不同意'}
+                        onChange={() => setPhoneAgreement('不同意')}
+                    />
                 </div>
-                <RadioGroup
-                    legend="是否同意以上規範"
-                    name="phone-agreement"
-                    options={['同意', '不同意']}
-                    selectedValue={phoneAgreement}
-                    onChange={(value) => setPhoneAgreement(value as '同意' | '不同意')}
-                />
                 {phoneAgreement === '不同意' && (
-                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                        <p className="text-sm text-yellow-800 font-medium">
-                            ⚠️ 勾選不同意者本次申請將改列彈性學習
-                        </p>
-                    </div>
+                    <GlassAlert variant="warning">
+                        勾選不同意者本次申請將改列彈性學習
+                    </GlassAlert>
                 )}
                 {errors.phoneAgreement && (
-                    <p className="mt-2 text-sm text-red-600">{errors.phoneAgreement}</p>
+                    <p className="mt-2 text-sm text-red-400">{errors.phoneAgreement}</p>
                 )}
-            </Section>
+            </GlassSection>
 
-            <Section title="簽章">
+            {/* Signatures */}
+            <GlassSection title="簽章">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
                         '組長簽名',
@@ -906,32 +809,33 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                         />
                     ))}
                 </div>
-            </Section>
+            </GlassSection>
 
+            {/* Submit Section */}
             {submitError && (
-                <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+                <GlassAlert variant="error" className="mb-6">
                     <p className="font-bold">提交失敗</p>
                     <p>{submitError}</p>
-                </div>
+                </GlassAlert>
             )}
 
             {submitSuccess && (
-                <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-lg">
+                <GlassAlert variant="success" className="mb-6">
                     <p className="font-bold">提交成功！</p>
                     <p>正在跳轉到歷史紀錄...</p>
-                </div>
+                </GlassAlert>
             )}
 
-            <div className="mt-8">
-                <button
-                    type="button"
-                    onClick={handleSubmit}
-                    disabled={isSubmitting}
-                    className="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-transform transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
-                >
-                    {isSubmitting ? '提交中...' : '完成並儲存'}
-                </button>
-            </div>
+            <GlassButton
+                variant="primary"
+                size="lg"
+                className="w-full"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                loading={isSubmitting}
+            >
+                {isSubmitting ? '提交中...' : '完成並儲存'}
+            </GlassButton>
         </form>
     );
 };
