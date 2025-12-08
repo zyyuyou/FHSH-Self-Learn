@@ -84,3 +84,34 @@ htmlcov/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# Test files and temporary files
+*.bak
+*.bak2
+*.bak3
+*.bak4
+*.backup
+test_*.pdf
+test_*.json
+test_*.sh
+debug_*.docx
+debug_*.pdf
+final_test.pdf
+simplified_chars_check.txt
+
+# Temporary docx files (except templates)
+復興自主學習申請表*.docx
+測試*.docx
+最終測試*.docx
+截圖*.png
+application_template_with_variables.docx
+container_template.docx
+template_original.docx
+test_refs_output.docx
+
+# Backup service files
+services/*.bak
+services/*.bak2
+
+# Claude Code
+.claude/
