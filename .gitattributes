@@ -1,0 +1,49 @@
+# 自動處理換行符號
+# 確保跨平台 (Windows/Linux/Mac) 一鍵部署
+
+# 預設所有文字檔案自動轉換
+* text=auto
+
+# Shell 腳本強制使用 LF (Linux 換行符號)
+*.sh text eol=lf
+entrypoint.sh text eol=lf
+
+# Batch 腳本保持 CRLF (Windows 換行符號)
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Docker 相關檔案強制 LF
+Dockerfile text eol=lf
+docker-compose.yml text eol=lf
+docker-compose*.yml text eol=lf
+.dockerignore text eol=lf
+
+# 設定檔強制 LF
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.conf text eol=lf
+nginx.conf text eol=lf
+
+# 原始碼檔案
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.jsx text eol=lf
+*.py text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+
+# 二進位檔案不進行轉換
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
+*.docx binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary

@@ -43,8 +43,9 @@ RUN mkdir -p uploads temp templates
 # 複製 Word 模板檔案
 COPY ["附件一 復興自主學習申請表-新版.docx", "/app/templates/application_template.docx"]
 
-# 設定啟動指令碼許可權
-RUN chmod +x /app/entrypoint.sh
+# 修正換行符號 (CRLF -> LF) 並設定啟動指令碼許可權
+# 這確保從 Windows 環境 clone 的專案也能正常運行
+RUN sed -i 's/\r$//' /app/entrypoint.sh && chmod +x /app/entrypoint.sh
 
 # 暴露埠
 EXPOSE 8000
