@@ -182,35 +182,36 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
     };
 
     const handleStudentIdBlur = async (index: number, studentId: string) => {
-        if (!studentId.trim()) return;
+        const trimmedStudentId = studentId.trim();
+        if (!trimmedStudentId) return;
 
         try {
-            const response = await fetch(`http://localhost:8000/students/${studentId}`);
-            if (response.ok) {
-                const studentData = await response.json();
-                const newMembers = [...members];
-                newMembers[index] = {
-                    ...newMembers[index],
-                    studentId: studentId,
-                    studentClass: studentData.class_name || '',
-                    studentSeat: String(studentData.seat_number || ''),
-                    studentName: studentData.name || '',
-                };
-                setMembers(newMembers);
-            } else {
-                const newMembers = [...members];
-                newMembers[index] = {
-                    ...newMembers[index],
-                    studentClass: '',
-                    studentSeat: '',
-                    studentName: '',
-                };
-                setMembers(newMembers);
-                alert('找不到該學號的學生資料');
-            }
-        } catch (error) {
+            const studentData = await api.getStudentById(trimmedStudentId);
+            const newMembers = [...members];
+            newMembers[index] = {
+                ...newMembers[index],
+                studentId: trimmedStudentId,
+                studentClass: studentData.class_name || '',
+                studentSeat: String(studentData.seat_number || ''),
+                studentName: studentData.name || '',
+            };
+            setMembers(newMembers);
+        } catch (error: any) {
             console.error('查詢學生資料失敗:', error);
-            alert('查詢學生資料失敗，請稍後再試');
+            const newMembers = [...members];
+            newMembers[index] = {
+                ...newMembers[index],
+                studentClass: '',
+                studentSeat: '',
+                studentName: '',
+            };
+            setMembers(newMembers);
+            // 根據錯誤訊息顯示不同的提示
+            if (error.message?.includes('學生不存在') || error.message?.includes('404')) {
+                alert('找不到該學號的學生資料');
+            } else {
+                alert('查詢學生資料失敗，請稍後再試');
+            }
         }
     };
 

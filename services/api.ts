@@ -2,13 +2,14 @@
  * API 服務模組 - 與 FastAPI 後端通訊
  *
  * 生產環境：透過 Nginx 反向代理訪問後端 (/api -> backend:8000)
- * 開發環境：直接訪問後端 (http://localhost:8000)
+ * 開發環境：透過 Vite 代理訪問後端 (/api -> localhost:8000)
  */
 
 // API 基礎配置
-// 在 Docker 環境中，使用 /api 字首，由 Nginx 轉發到後端
-// 在開發環境中，直接連線到 localhost:8000
-const API_BASE_URL = import.meta.env.PROD ? '/api' : 'http://localhost:8000';
+// 統一使用 /api 路徑前綴
+// - 生產環境：由 Nginx 反向代理到 backend:8000
+// - 開發環境：由 Vite 代理到 localhost:8000
+const API_BASE_URL = '/api';
 const TOKEN_KEY = 'auth_token';
 
 // ==================== 型別定義 ====================
