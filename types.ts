@@ -10,8 +10,8 @@ export enum UserRole {
 }
 
 export enum ApplicationStatus {
-    Passed = '透過',
-    NotPassed = '未透過',
+    Passed = '通過',
+    NotPassed = '未通過',
     Pending = '審核中',
 }
 

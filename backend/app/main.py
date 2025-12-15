@@ -6,7 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from .config import settings
 from .database import mongodb_client
-from .routes import auth_router, applications_router, students_router
+from .routes import auth_router, applications_router, students_router, drafts_router, settings_router
 
 
 @asynccontextmanager
@@ -46,6 +46,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(applications_router)
 app.include_router(students_router)
+app.include_router(drafts_router)
+app.include_router(settings_router)
 
 
 @app.get("/", tags=["系統"])

@@ -4,7 +4,7 @@
 from typing import List, Optional
 from pathlib import Path
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, BackgroundTasks
 from fastapi.responses import FileResponse
 from ..models.application import (
     ApplicationCreate,
@@ -16,6 +16,7 @@ from ..models.application import (
 from ..models.user import User
 from ..services.application_service import ApplicationService
 from ..services.pdf_service import PDFService
+from ..services.email_service import EmailService
 from ..dependencies import get_current_user, get_current_teacher
 
 router = APIRouter(prefix="/applications", tags=["申请表"])
@@ -188,6 +189,7 @@ async def update_application(
     更新申请表
 
     学生只能更新自己的申请表
+    更新後狀態會自動重設為「審核中」
     """
     # 获取申请表
     application = await application_service.get_application_by_id(application_id)
@@ -204,6 +206,11 @@ async def update_application(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="无权修改此申请表"
         )
+
+    # 學生編輯時，強制將狀態重設為「審核中」
+    if current_user.role == "student":
+        application_data.status = ApplicationStatus.PENDING
+        application_data.comment = ""  # 清除之前的評語
 
     # 更新申请表
     updated_application = await application_service.update_application(
@@ -258,6 +265,7 @@ class ReviewRequest(BaseModel):
 async def review_application(
     application_id: str,
     review_data: ReviewRequest,
+    background_tasks: BackgroundTasks,
     current_teacher: User = Depends(get_current_teacher),
     application_service: ApplicationService = Depends(get_application_service)
 ):
@@ -265,6 +273,7 @@ async def review_application(
     审核申请表（教师功能）
 
     教师可以通过/不通过学生的申请，并添加评语
+    审核完成后会自动发送邮件通知学生（如果配置了 Gmail）
     """
     application = await application_service.get_application_by_id(application_id)
 
@@ -296,6 +305,55 @@ async def review_application(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="更新失败"
         )
+
+    # 发送邮件通知（在后台执行，不阻塞响应）
+    # 只在通过或未通过时发送通知
+    if status_enum in [ApplicationStatus.PASSED, ApplicationStatus.NOT_PASSED]:
+        # 获取学生信息（用户名即为 Email）
+        from ..models.user import User as UserModel
+        submitter = await UserModel.get(updated_application.submitter_id)
+
+        # 检查 Gmail 是否已配置（异步调用）
+        is_email_configured = await EmailService.is_configured()
+
+        if submitter and is_email_configured:
+            # 确定状态文本
+            status_text = "通過" if status_enum == ApplicationStatus.PASSED else "未通過"
+
+            # 获取学生姓名（从组员列表中查找）
+            student_name = submitter.student_name or submitter.username
+            if updated_application.members and len(updated_application.members) > 0:
+                first_member = updated_application.members[0]
+                if first_member.student_name:
+                    student_name = first_member.student_name
+
+            # 异步生成 PDF 并发送邮件
+            async def send_email_with_pdf():
+                try:
+                    # 生成 PDF
+                    pdf_path = await PDFService.generate_pdf(updated_application)
+
+                    # 发送邮件
+                    await EmailService.send_review_notification(
+                        recipient_email=submitter.username,  # 用户名即为 Email
+                        student_name=student_name,
+                        application_title=updated_application.title,
+                        status=status_text,
+                        comment=review_data.comment,
+                        pdf_path=pdf_path,
+                    )
+
+                    # 清理临时 PDF
+                    if pdf_path.exists():
+                        pdf_path.unlink()
+
+                except Exception as e:
+                    print(f"发送邮件通知失败: {e}")
+                    import traceback
+                    traceback.print_exc()
+
+            # 添加到后台任务
+            background_tasks.add_task(send_email_with_pdf)
 
     return ApplicationResponse(
         id=str(updated_application.id),

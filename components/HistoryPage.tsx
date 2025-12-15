@@ -30,13 +30,13 @@ const TeacherActions: React.FC<{
         <h4 className="font-medium text-white/70 mb-3 text-sm">處理狀態</h4>
         <div className="flex items-center gap-4">
             <GlassRadio
-                label="透過"
+                label="通過"
                 name={`status-${application.id}`}
                 checked={application.status === ApplicationStatus.Passed}
                 onChange={() => onStatusChange(application.id, ApplicationStatus.Passed)}
             />
             <GlassRadio
-                label="未透過"
+                label="未通過"
                 name={`status-${application.id}`}
                 checked={application.status === ApplicationStatus.NotPassed}
                 onChange={() => onStatusChange(application.id, ApplicationStatus.NotPassed)}
@@ -52,7 +52,8 @@ const ApplicationCard: React.FC<{
     onStatusChange: (id: string, status: ApplicationStatus) => void;
     onShowDetail: (app: Application) => void;
     onExportPDF: (app: Application) => void;
-}> = ({ application, userRole, onShowComment, onStatusChange, onShowDetail, onExportPDF }) => {
+    onEdit?: (app: Application) => void;
+}> = ({ application, userRole, onShowComment, onStatusChange, onShowDetail, onExportPDF, onEdit }) => {
     return (
         <GlassCard className="p-6" hover glow="subtle">
             {/* Header with Status */}
@@ -94,6 +95,19 @@ const ApplicationCard: React.FC<{
                     </svg>
                     檢視
                 </GlassButton>
+                {/* 學生專用編輯按鈕 */}
+                {userRole === UserRole.Student && onEdit && (
+                    <GlassButton
+                        variant="warning"
+                        size="sm"
+                        onClick={() => onEdit(application)}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        編輯
+                    </GlassButton>
+                )}
                 <GlassButton
                     variant="primary"
                     size="sm"
@@ -270,6 +284,18 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
         }
     };
 
+    const handleEdit = async (app: Application) => {
+        try {
+            // 取得完整的申請表資料
+            const fullApp = await api.getApplicationById(app.id.toString());
+            // 呼叫父元件傳入的 onEdit，切換到編輯模式
+            onEdit(fullApp);
+        } catch (err) {
+            console.error('獲取申請表詳情失敗:', err);
+            alert('無法編輯: ' + (err instanceof Error ? err.message : '未知錯誤'));
+        }
+    };
+
     const handleStatusChange = async (id: string, status: ApplicationStatus) => {
         try {
             await api.reviewApplication(id, {
@@ -336,8 +362,8 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
                                 onChange={handleFilterChange}
                                 options={[
                                     { value: '', label: '全部狀態' },
-                                    { value: ApplicationStatus.Passed, label: '透過' },
-                                    { value: ApplicationStatus.NotPassed, label: '未透過' },
+                                    { value: ApplicationStatus.Passed, label: '通過' },
+                                    { value: ApplicationStatus.NotPassed, label: '未通過' },
                                     { value: ApplicationStatus.Pending, label: '審核中' },
                                 ]}
                             />
@@ -381,6 +407,7 @@ const HistoryPage: React.FC<HistoryPageProps> = ({ userRole, onEdit }) => {
                                     onStatusChange={handleStatusChange}
                                     onShowDetail={handleShowDetail}
                                     onExportPDF={handleExportPDF}
+                                    onEdit={userRole === UserRole.Student ? handleEdit : undefined}
                                 />
                             ))}
                         </div>

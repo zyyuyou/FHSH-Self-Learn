@@ -18,7 +18,7 @@ export const NoiseOverlay: React.FC<{ className?: string }> = ({ className = '' 
 // -----------------------------------------------------------------------------
 // GlassButton
 // -----------------------------------------------------------------------------
-type ButtonVariant = 'default' | 'primary' | 'success' | 'danger' | 'ghost';
+type ButtonVariant = 'default' | 'primary' | 'success' | 'danger' | 'warning' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg' | 'icon';
 
 interface GlassButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -73,6 +73,13 @@ export const GlassButton: React.FC<GlassButtonProps> = ({
             shadow-[inset_0_0_0_1px_rgba(239,68,68,0.2),0_4px_25px_rgba(239,68,68,0.25)]
             hover:bg-red-500/40 hover:border-red-400/50
             hover:shadow-[inset_0_0_0_1px_rgba(239,68,68,0.4),0_8px_40px_rgba(239,68,68,0.35)]
+            hover:-translate-y-0.5
+        `,
+        warning: `
+            bg-amber-500/30 border-amber-400/30 text-white
+            shadow-[inset_0_0_0_1px_rgba(245,158,11,0.2),0_4px_25px_rgba(245,158,11,0.25)]
+            hover:bg-amber-500/40 hover:border-amber-400/50
+            hover:shadow-[inset_0_0_0_1px_rgba(245,158,11,0.4),0_8px_40px_rgba(245,158,11,0.35)]
             hover:-translate-y-0.5
         `,
         ghost: `

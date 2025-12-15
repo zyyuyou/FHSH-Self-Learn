@@ -33,6 +33,12 @@ services:
             - MONGODB_DB_NAME=self_learning_system
             - DEBUG=True
             - SECRET_KEY=your-secret-key-change-in-production
+            # Gmail 通知設定（可選）
+            # 設定後，審核完成會自動發送郵件通知學生
+            # GMAIL_USER: 您的 Gmail 帳號
+            # GMAIL_APP_PASSWORD: Gmail App Password（在 Google 帳戶設定中生成）
+            - GMAIL_USER=${GMAIL_USER:-}
+            - GMAIL_APP_PASSWORD=${GMAIL_APP_PASSWORD:-}
         volumes:
             - ./backend/uploads:/app/uploads
             # 開發時啟用熱過載（可選）

@@ -11,6 +11,42 @@
 // - 開發環境：由 Vite 代理到 localhost:8000
 const API_BASE_URL = '/api';
 const TOKEN_KEY = 'auth_token';
+const USER_KEY = 'auth_user';
+const COOKIE_EXPIRY_DAYS = 7; // Cookie 有效期 7 天
+
+// ==================== Cookie 輔助函數 ====================
+
+/**
+ * 設定 Cookie
+ */
+const setCookie = (name: string, value: string, days: number = COOKIE_EXPIRY_DAYS): void => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + days * 24 * 60 * 60 * 1000);
+    document.cookie = `${name}=${encodeURIComponent(value)};expires=${expires.toUTCString()};path=/;SameSite=Strict`;
+};
+
+/**
+ * 取得 Cookie
+ */
+const getCookie = (name: string): string | null => {
+    const nameEQ = name + '=';
+    const ca = document.cookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+        let c = ca[i];
+        while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) === 0) {
+            return decodeURIComponent(c.substring(nameEQ.length, c.length));
+        }
+    }
+    return null;
+};
+
+/**
+ * 刪除 Cookie
+ */
+const deleteCookie = (name: string): void => {
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;SameSite=Strict`;
+};
 
 // ==================== 型別定義 ====================
 
@@ -52,24 +88,37 @@ interface ApiError {
 // ==================== Token 管理 ====================
 
 /**
- * 儲存 token 到 localStorage
+ * 儲存 token（同時儲存到 localStorage 和 Cookie）
  */
 export const saveToken = (token: string): void => {
     localStorage.setItem(TOKEN_KEY, token);
+    setCookie(TOKEN_KEY, token, COOKIE_EXPIRY_DAYS);
 };
 
 /**
- * 獲取 token 從 localStorage
+ * 獲取 token（優先從 localStorage，fallback 到 Cookie）
  */
 export const getToken = (): string | null => {
-    return localStorage.getItem(TOKEN_KEY);
+    // 優先使用 localStorage
+    const localToken = localStorage.getItem(TOKEN_KEY);
+    if (localToken) {
+        return localToken;
+    }
+    // Fallback 到 Cookie
+    const cookieToken = getCookie(TOKEN_KEY);
+    if (cookieToken) {
+        // 同步到 localStorage
+        localStorage.setItem(TOKEN_KEY, cookieToken);
+    }
+    return cookieToken;
 };
 
 /**
- * 刪除 token 從 localStorage
+ * 刪除 token（同時從 localStorage 和 Cookie 刪除）
  */
 export const removeToken = (): void => {
     localStorage.removeItem(TOKEN_KEY);
+    deleteCookie(TOKEN_KEY);
 };
 
 /**
@@ -77,6 +126,50 @@ export const removeToken = (): void => {
  */
 export const isAuthenticated = (): boolean => {
     return getToken() !== null;
+};
+
+// ==================== 使用者資訊管理 ====================
+
+/**
+ * 儲存使用者資訊（同時儲存到 localStorage 和 Cookie）
+ */
+export const saveUser = (user: LoginResponse['user']): void => {
+    const userJson = JSON.stringify(user);
+    localStorage.setItem(USER_KEY, userJson);
+    setCookie(USER_KEY, userJson, COOKIE_EXPIRY_DAYS);
+};
+
+/**
+ * 獲取使用者資訊（優先從 localStorage，fallback 到 Cookie）
+ */
+export const getUser = (): LoginResponse['user'] | null => {
+    try {
+        // 優先使用 localStorage
+        const localUser = localStorage.getItem(USER_KEY);
+        if (localUser) {
+            return JSON.parse(localUser);
+        }
+        // Fallback 到 Cookie
+        const cookieUser = getCookie(USER_KEY);
+        if (cookieUser) {
+            const user = JSON.parse(cookieUser);
+            // 同步到 localStorage
+            localStorage.setItem(USER_KEY, cookieUser);
+            return user;
+        }
+        return null;
+    } catch (e) {
+        console.error('解析使用者資訊失敗:', e);
+        return null;
+    }
+};
+
+/**
+ * 刪除使用者資訊（同時從 localStorage 和 Cookie 刪除）
+ */
+export const removeUser = (): void => {
+    localStorage.removeItem(USER_KEY);
+    deleteCookie(USER_KEY);
 };
 
 // ==================== HTTP 請求封裝 ====================
@@ -160,8 +253,9 @@ export const login = async (username: string, password: string): Promise<LoginRe
         throw new Error((data as ApiError).detail || '登入失敗');
     }
 
-    // 儲存 token
+    // 儲存 token 和使用者資訊
     saveToken(data.access_token);
+    saveUser(data.user);
 
     return data as LoginResponse;
 };
@@ -181,6 +275,7 @@ export const register = async (userData: RegisterRequest): Promise<LoginResponse
  */
 export const logout = (): void => {
     removeToken();
+    removeUser();
     window.location.href = '/';
 };
 
@@ -317,6 +412,34 @@ export const exportApplicationPDF = async (id: string): Promise<void> => {
     }
 };
 
+// ==================== 草稿 API ====================
+
+/**
+ * 獲取草稿
+ */
+export const getDraft = async (): Promise<any> => {
+    return fetchAPI('/drafts/');
+};
+
+/**
+ * 儲存草稿
+ */
+export const saveDraft = async (formData: any): Promise<any> => {
+    return fetchAPI('/drafts/', {
+        method: 'POST',
+        body: JSON.stringify({ form_data: formData }),
+    });
+};
+
+/**
+ * 刪除草稿
+ */
+export const deleteDraft = async (): Promise<void> => {
+    return fetchAPI('/drafts/', {
+        method: 'DELETE',
+    });
+};
+
 // ==================== 學生 API ====================
 
 /**
@@ -359,6 +482,33 @@ export const getAllStudents = async (params?: {
     return fetchAPI(endpoint);
 };
 
+// ==================== 系統設定 API ====================
+
+interface GmailSettings {
+    gmail_user: string | null;
+    is_configured: boolean;
+}
+
+/**
+ * 獲取 Gmail 設定
+ */
+export const getGmailSettings = async (): Promise<GmailSettings> => {
+    return fetchAPI('/settings/gmail');
+};
+
+/**
+ * 更新 Gmail 設定
+ */
+export const updateGmailSettings = async (settings: {
+    gmail_user?: string;
+    gmail_app_password?: string;
+}): Promise<GmailSettings> => {
+    return fetchAPI('/settings/gmail', {
+        method: 'PUT',
+        body: JSON.stringify(settings),
+    });
+};
+
 // ==================== 匯出所有 API ====================
 
 const api = {
@@ -374,6 +524,11 @@ const api = {
     removeToken,
     isAuthenticated,
 
+    // 使用者資訊管理
+    saveUser,
+    getUser,
+    removeUser,
+
     // 申請表
     createApplication,
     getApplications,
@@ -383,10 +538,19 @@ const api = {
     reviewApplication,
     exportApplicationPDF,
 
+    // 草稿
+    getDraft,
+    saveDraft,
+    deleteDraft,
+
     // 學生
     searchStudents,
     getStudentById,
     getAllStudents,
+
+    // 系統設定
+    getGmailSettings,
+    updateGmailSettings,
 };
 
 export default api;

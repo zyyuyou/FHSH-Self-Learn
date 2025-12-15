@@ -26,6 +26,8 @@ class MongoDBClient:
         from ..models.user import User
         from ..models.application import Application
         from ..models.student import Student
+        from ..models.draft import Draft
+        from ..models.settings import SystemSettings
 
         # 初始化 Beanie
         await init_beanie(
@@ -34,6 +36,8 @@ class MongoDBClient:
                 User,
                 Application,
                 Student,
+                Draft,
+                SystemSettings,
             ]
         )
 

@@ -18,7 +18,7 @@ const DetailSection: React.FC<{ title: string; children: React.ReactNode; icon?:
 );
 
 const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({ application, onClose }) => {
-    const statusVariant = application.status === '透過' ? 'success' : application.status === '未透過' ? 'danger' : 'warning';
+    const statusVariant = application.status === '通過' ? 'success' : application.status === '未通過' ? 'danger' : 'warning';
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -339,24 +339,58 @@ const ApplicationDetailModal: React.FC<ApplicationDetailModalProps> = ({ applica
                                 title="簽章"
                                 icon={<svg className="w-5 h-5 text-teal-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>}
                             >
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {application.signatures.map((sig, index) => (
-                                        <GlassCard key={index} className="p-4" hover>
-                                            <p className="text-sm text-white/70 mb-2">{sig.type}</p>
-                                            {sig.image_url ? (
-                                                <img
-                                                    src={sig.image_url}
-                                                    alt={sig.type}
-                                                    className="border border-white/10 rounded-lg max-h-24 w-full object-contain bg-white/5"
-                                                />
-                                            ) : (
-                                                <div className="text-white/30 text-sm text-center py-4 border border-white/10 rounded-lg bg-white/5">
-                                                    未簽章
-                                                </div>
-                                            )}
-                                        </GlassCard>
-                                    ))}
-                                </div>
+                                {/* 學生簽名 */}
+                                {application.signatures.filter(sig => sig.type.includes('學生')).length > 0 && (
+                                    <>
+                                        <h4 className="text-sm font-medium text-white/80 mb-3">學生簽名</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                                            {application.signatures
+                                                .filter(sig => sig.type.includes('學生'))
+                                                .map((sig, index) => (
+                                                    <GlassCard key={index} className="p-4" hover>
+                                                        <p className="text-sm text-white/70 mb-2">{sig.type}</p>
+                                                        {sig.image_url ? (
+                                                            <img
+                                                                src={sig.image_url}
+                                                                alt={sig.type}
+                                                                className="border border-white/10 rounded-lg max-h-24 w-full object-contain bg-white/5"
+                                                            />
+                                                        ) : (
+                                                            <div className="text-white/30 text-sm text-center py-4 border border-white/10 rounded-lg bg-white/5">
+                                                                未簽名
+                                                            </div>
+                                                        )}
+                                                    </GlassCard>
+                                                ))}
+                                        </div>
+                                    </>
+                                )}
+                                {/* 教師及管理人簽章 */}
+                                {application.signatures.filter(sig => !sig.type.includes('學生')).length > 0 && (
+                                    <>
+                                        <h4 className="text-sm font-medium text-white/80 mb-3">教師及管理人簽章</h4>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            {application.signatures
+                                                .filter(sig => !sig.type.includes('學生'))
+                                                .map((sig, index) => (
+                                                    <GlassCard key={index} className="p-4" hover>
+                                                        <p className="text-sm text-white/70 mb-2">{sig.type}</p>
+                                                        {sig.image_url ? (
+                                                            <img
+                                                                src={sig.image_url}
+                                                                alt={sig.type}
+                                                                className="border border-white/10 rounded-lg max-h-24 w-full object-contain bg-white/5"
+                                                            />
+                                                        ) : (
+                                                            <div className="text-white/30 text-sm text-center py-4 border border-white/10 rounded-lg bg-white/5">
+                                                                未簽章
+                                                            </div>
+                                                        )}
+                                                    </GlassCard>
+                                                ))}
+                                        </div>
+                                    </>
+                                )}
                             </DetailSection>
                         )}
 

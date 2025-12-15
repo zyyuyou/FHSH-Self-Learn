@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Application } from '../types';
 import SignaturePad from './SignaturePad';
 import api from '../services/api';
@@ -148,20 +148,24 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
     const [presentationOther, setPresentationOther] = useState('');
     const [phoneAgreement, setPhoneAgreement] = useState<'同意' | '不同意' | null>(null);
     const [signatures, setSignatures] = useState<Record<string, string | null>>({
-        '組長簽名': null,
-        '組長父母或監護人簽名': null,
-        '組員1簽名': null,
-        '組員1父母或監護人簽名': null,
-        '組員2簽名': null,
-        '組員2父母或監護人簽名': null,
+        '學生 1 簽名': null,
+        '學生 2 簽名': null,
+        '學生 3 簽名': null,
         '指導教師簽章': null,
-        '導師簽章': null,
         '空間裝置管理人簽章': null,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [submitSuccess, setSubmitSuccess] = useState(false);
+
+    // 草稿相關狀態（改為手動儲存，不再自動儲存）
+    const [draftLoaded, setDraftLoaded] = useState(false);
+    const [draftSaveStatus, setDraftSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+
+    // 編輯模式狀態
+    const [editingApplicationId, setEditingApplicationId] = useState<string | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     const learningCategories = [
         '閱讀計畫',
@@ -174,6 +178,249 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
         '課程延伸',
     ];
     const envNeeds = ['自習室', '數位閱讀室', '雲端教室', '美力教室'];
+
+    // 收集當前表單資料
+    const collectFormData = useCallback(() => {
+        return {
+            projectTitle,
+            members,
+            motivation,
+            learningCategoriesChecked,
+            learningCategoryOther,
+            references,
+            expectedOutcome,
+            equipmentNeeds,
+            envNeedsChecked,
+            envOther,
+            planItems,
+            midtermGoal,
+            finalGoal,
+            presentationFormats,
+            presentationOther,
+            phoneAgreement,
+            signatures,
+        };
+    }, [projectTitle, members, motivation, learningCategoriesChecked, learningCategoryOther,
+        references, expectedOutcome, equipmentNeeds, envNeedsChecked, envOther, planItems,
+        midtermGoal, finalGoal, presentationFormats, presentationOther, phoneAgreement, signatures]);
+
+    // 從資料恢復表單
+    const restoreFormData = useCallback((data: any) => {
+        if (data.projectTitle !== undefined) setProjectTitle(data.projectTitle);
+        if (data.members !== undefined) setMembers(data.members);
+        if (data.motivation !== undefined) setMotivation(data.motivation);
+        if (data.learningCategoriesChecked !== undefined) setLearningCategoriesChecked(data.learningCategoriesChecked);
+        if (data.learningCategoryOther !== undefined) setLearningCategoryOther(data.learningCategoryOther);
+        if (data.references !== undefined) setReferences(data.references);
+        if (data.expectedOutcome !== undefined) setExpectedOutcome(data.expectedOutcome);
+        if (data.equipmentNeeds !== undefined) setEquipmentNeeds(data.equipmentNeeds);
+        if (data.envNeedsChecked !== undefined) setEnvNeedsChecked(data.envNeedsChecked);
+        if (data.envOther !== undefined) setEnvOther(data.envOther);
+        if (data.planItems !== undefined) setPlanItems(data.planItems);
+        if (data.midtermGoal !== undefined) setMidtermGoal(data.midtermGoal);
+        if (data.finalGoal !== undefined) setFinalGoal(data.finalGoal);
+        if (data.presentationFormats !== undefined) setPresentationFormats(data.presentationFormats);
+        if (data.presentationOther !== undefined) setPresentationOther(data.presentationOther);
+        if (data.phoneAgreement !== undefined) setPhoneAgreement(data.phoneAgreement);
+        if (data.signatures !== undefined) setSignatures(data.signatures);
+    }, []);
+
+    // 從 Application 物件恢復表單（用於編輯已提交的申請表）
+    const restoreFromApplication = useCallback((app: Application) => {
+        setProjectTitle(app.title || '');
+
+        // 轉換 members 格式
+        const newMembers = Array(3).fill(null).map((_, i) => {
+            const member = app.members?.[i];
+            return member ? {
+                studentId: member.student_id || '',
+                studentClass: member.student_class || '',
+                studentSeat: member.student_seat || '',
+                studentName: member.student_name || '',
+                hasSubmitted: member.has_submitted || '',
+            } : {
+                studentId: '',
+                studentClass: '',
+                studentSeat: '',
+                studentName: '',
+                hasSubmitted: '',
+            };
+        });
+        setMembers(newMembers);
+
+        setMotivation(app.motivation || '');
+        setLearningCategoriesChecked(app.learning_categories || {});
+        setLearningCategoryOther(app.learning_category_other || '');
+
+        // 轉換 references 格式
+        const newRefs = (app.references || []).map((ref: any, i: number) => ({
+            id: Date.now() + i,
+            bookTitle: ref.book_title || '',
+            author: ref.author || '',
+            publisher: ref.publisher || '',
+            link: ref.link || '',
+        }));
+        setReferences(newRefs.length > 0 ? newRefs : [{ id: Date.now(), bookTitle: '', author: '', publisher: '', link: '' }]);
+
+        setExpectedOutcome(app.expected_outcome || '');
+        setEquipmentNeeds(app.equipment_needs || '');
+        setEnvNeedsChecked(app.env_needs || {});
+        setEnvOther(app.env_other || '');
+
+        // 轉換 plan_items 格式
+        const newPlanItems = (app.plan_items || []).map((item: any, i: number) => ({
+            id: Date.now() + i,
+            date: item.date || '',
+            content: item.content || '',
+            hours: item.hours || '',
+            metric: item.metric || '',
+        }));
+        // 確保至少有9個項次
+        while (newPlanItems.length < 9) {
+            newPlanItems.push({
+                id: Date.now() + newPlanItems.length,
+                date: '',
+                content: '',
+                hours: '',
+                metric: '',
+            });
+        }
+        setPlanItems(newPlanItems);
+
+        setMidtermGoal(app.midterm_goal || '');
+        setFinalGoal(app.final_goal || '');
+        setPresentationFormats(app.presentation_formats || {});
+        setPresentationOther(app.presentation_other || '');
+        setPhoneAgreement(app.phone_agreement as '同意' | '不同意' | null);
+
+        // 轉換 signatures 格式
+        const newSignatures: Record<string, string | null> = {
+            '學生 1 簽名': null,
+            '學生 2 簽名': null,
+            '學生 3 簽名': null,
+            '指導教師簽章': null,
+            '空間裝置管理人簽章': null,
+        };
+        (app.signatures || []).forEach((sig: any) => {
+            if (sig.type in newSignatures) {
+                newSignatures[sig.type] = sig.image_url || null;
+            }
+        });
+        setSignatures(newSignatures);
+    }, []);
+
+    // 手動儲存草稿（只在點擊按鈕時觸發）
+    const saveDraftToServer = useCallback(async () => {
+        // 如果是編輯模式，不儲存草稿
+        if (isEditMode) return;
+
+        try {
+            setDraftSaveStatus('saving');
+            const formData = collectFormData();
+            await api.saveDraft(formData);
+            setDraftSaveStatus('saved');
+            // 3秒後重設狀態
+            setTimeout(() => setDraftSaveStatus('idle'), 3000);
+        } catch (error) {
+            console.error('儲存草稿失敗:', error);
+            setDraftSaveStatus('error');
+            setTimeout(() => setDraftSaveStatus('idle'), 3000);
+        }
+    }, [collectFormData, isEditMode]);
+
+    // 載入草稿
+    const loadDraft = useCallback(async () => {
+        try {
+            const draft = await api.getDraft();
+            if (draft && draft.form_data) {
+                restoreFormData(draft.form_data);
+                setDraftLoaded(true);
+            }
+        } catch (error: any) {
+            // 404 表示沒有草稿，不是錯誤
+            if (!error.message?.includes('404') && !error.message?.includes('沒有儲存的草稿')) {
+                console.error('載入草稿失敗:', error);
+            }
+        }
+    }, [restoreFormData]);
+
+    // 重置表單
+    const resetForm = useCallback(() => {
+        setProjectTitle('');
+        setMembers(Array(3).fill(null).map(() => ({
+            studentId: '',
+            studentClass: '',
+            studentSeat: '',
+            studentName: '',
+            hasSubmitted: '',
+        })));
+        setMotivation('');
+        setLearningCategoriesChecked({});
+        setLearningCategoryOther('');
+        setReferences([{ id: Date.now(), bookTitle: '', author: '', publisher: '', link: '' }]);
+        setExpectedOutcome('');
+        setEquipmentNeeds('');
+        setEnvNeedsChecked({});
+        setEnvOther('');
+        setPlanItems(Array.from({ length: 9 }, (_, index) => ({
+            id: Date.now() + index,
+            date: '',
+            content: '',
+            hours: '',
+            metric: '',
+        })));
+        setMidtermGoal('');
+        setFinalGoal('');
+        setPresentationFormats({});
+        setPresentationOther('');
+        setPhoneAgreement(null);
+        setSignatures({
+            '學生 1 簽名': null,
+            '學生 2 簽名': null,
+            '學生 3 簽名': null,
+            '指導教師簽章': null,
+            '空間裝置管理人簽章': null,
+        });
+        setErrors({});
+        setEditingApplicationId(null);
+        setIsEditMode(false);
+    }, []);
+
+    // 初始化：載入草稿或編輯的申請表
+    useEffect(() => {
+        const initForm = async () => {
+            if (applicationToEdit) {
+                // 編輯已有的申請表
+                setIsEditMode(true);
+                setEditingApplicationId(applicationToEdit.id);
+
+                // 獲取完整的申請表資料
+                try {
+                    const fullApp = await api.getApplicationById(applicationToEdit.id);
+                    restoreFromApplication(fullApp);
+                } catch (error) {
+                    console.error('載入申請表失敗:', error);
+                    alert('載入申請表失敗，請重試');
+                }
+            } else {
+                // 新建申請表：嘗試載入草稿
+                resetForm();
+                await loadDraft();
+            }
+        };
+
+        initForm();
+    }, [applicationToEdit, loadDraft, resetForm, restoreFromApplication]);
+
+    // 在新建模式下，標記為草稿已載入（用於顯示儲存按鈕）
+    useEffect(() => {
+        if (!applicationToEdit) {
+            const timer = setTimeout(() => {
+                setDraftLoaded(true);
+            }, 500);
+            return () => clearTimeout(timer);
+        }
+    }, [applicationToEdit]);
 
     const handleMemberChange = (index: number, field: keyof Member, value: string) => {
         const newMembers = [...members];
@@ -206,7 +453,6 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                 studentName: '',
             };
             setMembers(newMembers);
-            // 根據錯誤訊息顯示不同的提示
             if (error.message?.includes('學生不存在') || error.message?.includes('404')) {
                 alert('找不到該學號的學生資料');
             } else {
@@ -234,57 +480,6 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
             references.map((ref) => (ref.id === id ? { ...ref, [field]: value } : ref))
         );
     };
-
-    useEffect(() => {
-        if (applicationToEdit) {
-            setProjectTitle(applicationToEdit.title);
-        } else {
-            setProjectTitle('');
-            setMembers(
-                Array(3)
-                    .fill(null)
-                    .map(() => ({
-                        studentId: '',
-                        studentClass: '',
-                        studentSeat: '',
-                        studentName: '',
-                        hasSubmitted: '',
-                    }))
-            );
-            setMotivation('');
-            setLearningCategoriesChecked({});
-            setLearningCategoryOther('');
-            setReferences([{ id: Date.now(), bookTitle: '', author: '', publisher: '', link: '' }]);
-            setExpectedOutcome('');
-            setEquipmentNeeds('');
-            setEnvNeedsChecked({});
-            setEnvOther('');
-            setPlanItems(
-                Array.from({ length: 9 }, (_, index) => ({
-                    id: Date.now() + index,
-                    date: '',
-                    content: '',
-                    hours: '',
-                    metric: '',
-                }))
-            );
-            setMidtermGoal('');
-            setFinalGoal('');
-            setPresentationFormats({});
-            setPresentationOther('');
-            setSignatures({
-                '組長簽名': null,
-                '組長父母或監護人簽名': null,
-                '組員1簽名': null,
-                '組員1父母或監護人簽名': null,
-                '組員2簽名': null,
-                '組員2父母或監護人簽名': null,
-                '指導教師簽章': null,
-                '導師簽章': null,
-                '空間裝置管理人簽章': null,
-            });
-        }
-    }, [applicationToEdit]);
 
     const addReference = () => {
         setReferences([
@@ -438,10 +633,23 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                     })),
             };
 
-            await api.createApplication(applicationData);
-
-            setSubmitSuccess(true);
-            alert('計畫已成功送出！請到歷史紀錄檢視');
+            if (isEditMode && editingApplicationId) {
+                // 更新已有的申請表
+                await api.updateApplication(editingApplicationId, applicationData);
+                setSubmitSuccess(true);
+                alert('申請表已更新！狀態已重設為「審核中」，請等待教師審核');
+            } else {
+                // 建立新申請表
+                await api.createApplication(applicationData);
+                // 提交成功後刪除草稿
+                try {
+                    await api.deleteDraft();
+                } catch (e) {
+                    // 忽略刪除草稿失敗
+                }
+                setSubmitSuccess(true);
+                alert('計畫已成功送出！請到歷史紀錄檢視');
+            }
 
             if (onSubmitSuccess) {
                 setTimeout(() => {
@@ -456,11 +664,68 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
         }
     };
 
+    // 手動儲存當前進度（只有點擊按鈕時才儲存）
+    const handleSaveProgress = useCallback(async () => {
+        if (isEditMode) {
+            alert('編輯模式下無法儲存進度，請直接提交申請表');
+            return;
+        }
+        await saveDraftToServer();
+    }, [isEditMode, saveDraftToServer]);
+
     // Calculate total hours
     const totalHours = planItems.reduce((sum, item) => sum + (Number(item.hours) || 0), 0);
 
     return (
         <form onSubmit={(e) => e.preventDefault()}>
+            {/* 編輯模式提示 */}
+            {isEditMode && (
+                <GlassAlert variant="warning" className="mb-6">
+                    <p className="font-bold">編輯模式</p>
+                    <p>您正在編輯已提交的申請表。修改後狀態將重設為「審核中」。</p>
+                </GlassAlert>
+            )}
+
+            {/* 儲存進度按鈕（只在非編輯模式顯示） */}
+            {!isEditMode && (
+                <div className="mb-6 flex items-center justify-end gap-3">
+                    {/* 儲存狀態提示 */}
+                    {draftSaveStatus === 'saving' && (
+                        <div className="flex items-center gap-2 text-sm text-white/60">
+                            <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            <span>正在儲存...</span>
+                        </div>
+                    )}
+                    {draftSaveStatus === 'saved' && (
+                        <div className="flex items-center gap-2 text-sm text-green-400">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                            </svg>
+                            <span>進度已儲存</span>
+                        </div>
+                    )}
+                    {draftSaveStatus === 'error' && (
+                        <span className="text-sm text-red-400">儲存失敗，請重試</span>
+                    )}
+
+                    {/* 儲存當前進度按鈕 */}
+                    <GlassButton
+                        variant="default"
+                        size="sm"
+                        onClick={handleSaveProgress}
+                        disabled={draftSaveStatus === 'saving'}
+                    >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                        </svg>
+                        儲存當前進度
+                    </GlassButton>
+                </div>
+            )}
+
             {/* Project Title */}
             <GlassSection title="自主學習計畫名稱">
                 <GlassInput
@@ -791,16 +1056,30 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
 
             {/* Signatures */}
             <GlassSection title="簽章">
+                <p className="text-sm text-white/60 mb-4">
+                    請所有學生成員簽名，並取得指導教師及空間裝置管理人的簽章
+                </p>
+                {/* 學生簽名區塊 */}
+                <h4 className="text-sm font-medium text-white/80 mb-3">學生簽名</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    {[
+                        '學生 1 簽名',
+                        '學生 2 簽名',
+                        '學生 3 簽名',
+                    ].map((sig) => (
+                        <SignaturePad
+                            key={sig}
+                            label={sig}
+                            value={signatures[sig]}
+                            onChange={(value) => handleSignatureChange(sig, value)}
+                        />
+                    ))}
+                </div>
+                {/* 教師/管理人簽章區塊 */}
+                <h4 className="text-sm font-medium text-white/80 mb-3">教師及管理人簽章</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {[
-                        '組長簽名',
-                        '組長父母或監護人簽名',
-                        '組員1簽名',
-                        '組員1父母或監護人簽名',
-                        '組員2簽名',
-                        '組員2父母或監護人簽名',
                         '指導教師簽章',
-                        '導師簽章',
                         '空間裝置管理人簽章',
                     ].map((sig) => (
                         <SignaturePad
@@ -836,7 +1115,7 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                 disabled={isSubmitting}
                 loading={isSubmitting}
             >
-                {isSubmitting ? '提交中...' : '完成並儲存'}
+                {isSubmitting ? '提交中...' : isEditMode ? '更新申請表' : '完成並儲存'}
             </GlassButton>
         </form>
     );

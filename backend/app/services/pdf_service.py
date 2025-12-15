@@ -5,9 +5,14 @@ import os
 import subprocess
 import tempfile
 import traceback
+import base64
+import io
 from pathlib import Path
-from typing import Dict, Any
-from docxtpl import DocxTemplate
+from typing import Dict, Any, Optional
+from docxtpl import DocxTemplate, InlineImage
+from docx.shared import Mm
+from PIL import Image
+import numpy as np
 from ..models.application import Application
 
 
@@ -19,12 +24,139 @@ class PDFService:
     TEMP_DIR = Path("/app/temp")
 
     @classmethod
-    def _prepare_template_data(cls, application: Application) -> Dict[str, Any]:
+    def _decode_base64_image(cls, base64_string: str) -> Optional[bytes]:
+        """
+        解碼 base64 圖片字串
+
+        Args:
+            base64_string: base64 編碼的圖片字串（可能包含 data:image/png;base64, 前綴）
+
+        Returns:
+            bytes: 圖片二進位資料，解碼失敗返回 None
+        """
+        if not base64_string:
+            return None
+
+        try:
+            # 移除 data:image/xxx;base64, 前綴
+            if ',' in base64_string:
+                base64_string = base64_string.split(',', 1)[1]
+
+            return base64.b64decode(base64_string)
+        except Exception as e:
+            print(f"解碼 base64 圖片失敗: {e}")
+            return None
+
+    @classmethod
+    def _convert_signature_to_black(cls, image_bytes: bytes) -> bytes:
+        """
+        將簽名圖片中的白色筆跡轉換為黑色
+
+        前端簽名板使用白色繪製（在深色背景上顯示），
+        匯出 PDF 時需要轉換為黑色以便在白色紙張上顯示。
+
+        Args:
+            image_bytes: 原始圖片二進位資料
+
+        Returns:
+            bytes: 轉換後的圖片二進位資料
+        """
+        try:
+            # 開啟圖片
+            img = Image.open(io.BytesIO(image_bytes))
+
+            # 確保有 alpha 通道
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+
+            # 轉換為 numpy 陣列
+            data = np.array(img)
+
+            # 獲取 RGBA 通道
+            r, g, b, a = data[:, :, 0], data[:, :, 1], data[:, :, 2], data[:, :, 3]
+
+            # 找到非透明的像素（這些是簽名筆跡）
+            # 透明區域 alpha = 0，筆跡區域 alpha > 0
+            non_transparent = a > 0
+
+            # 將非透明區域的顏色改為黑色，保持 alpha 通道不變
+            data[non_transparent, 0] = 0  # R
+            data[non_transparent, 1] = 0  # G
+            data[non_transparent, 2] = 0  # B
+            # Alpha 保持不變
+
+            # 轉換回 PIL Image
+            result_img = Image.fromarray(data, 'RGBA')
+
+            # 儲存為 bytes
+            output = io.BytesIO()
+            result_img.save(output, format='PNG')
+            return output.getvalue()
+
+        except Exception as e:
+            print(f"轉換簽名顏色失敗: {e}")
+            traceback.print_exc()
+            # 如果轉換失敗，返回原始圖片
+            return image_bytes
+
+    @classmethod
+    def _create_signature_image(cls, doc: DocxTemplate, signature_data: Optional[str], width_mm: int = 30) -> Optional[InlineImage]:
+        """
+        建立簽名圖片物件
+
+        Args:
+            doc: DocxTemplate 物件
+            signature_data: base64 編碼的簽名圖片
+            width_mm: 圖片寬度（毫米）
+
+        Returns:
+            InlineImage 或 None
+        """
+        if not signature_data:
+            return None
+
+        image_bytes = cls._decode_base64_image(signature_data)
+        if not image_bytes:
+            return None
+
+        try:
+            # 將白色簽名轉換為黑色（用於 PDF 顯示）
+            black_signature_bytes = cls._convert_signature_to_black(image_bytes)
+
+            # 建立 InlineImage 物件
+            image_stream = io.BytesIO(black_signature_bytes)
+            return InlineImage(doc, image_stream, width=Mm(width_mm))
+        except Exception as e:
+            print(f"建立簽名圖片失敗: {e}")
+            return None
+
+    @classmethod
+    def _get_presentation_format(cls, presentation_formats: Optional[Dict[str, bool]]) -> str:
+        """
+        從 presentation_formats 字典中獲取選中的成果發表形式
+
+        Args:
+            presentation_formats: 成果發表形式字典 {format_name: bool}
+
+        Returns:
+            str: 選中的成果發表形式名稱，如果沒有選中則返回空字串
+        """
+        if not presentation_formats:
+            return ''
+
+        for format_name, selected in presentation_formats.items():
+            if selected:
+                return format_name
+        return ''
+
+    @classmethod
+    def _prepare_template_data(cls, application: Application, doc: DocxTemplate) -> Dict[str, Any]:
         """
         準備模板資料
 
         Args:
             application: 申請表資料
+            doc: DocxTemplate 物件（用於建立圖片物件）
 
         Returns:
             Dict: 模板變數字典
@@ -35,9 +167,9 @@ class PDFService:
             members_data.append({
                 'number': i,
                 'student_id': member.student_id,
-                'class_name': member.student_class,
-                'seat_number': member.student_seat,
-                'name': member.student_name or '',
+                'student_class': member.student_class,
+                'student_seat': member.student_seat,
+                'student_name': member.student_name or '',
                 'has_submitted': member.has_submitted or '否'
             })
 
@@ -46,9 +178,9 @@ class PDFService:
             members_data.append({
                 'number': len(members_data) + 1,
                 'student_id': '',
-                'class_name': '',
-                'seat_number': '',
-                'name': '',
+                'student_class': '',
+                'student_seat': '',
+                'student_name': '',
                 'has_submitted': ''
             })
 
@@ -159,21 +291,42 @@ class PDFService:
 
             # 成果發表形式
             'presentation_formats': application.presentation_formats or {},
+            'presentation_format': cls._get_presentation_format(application.presentation_formats),
             'presentation_other': application.presentation_other or '',
 
             # 手機使用規範
             'phone_agreement': application.phone_agreement or '',
 
-            # 簽名欄位（暫時留空）
-            'student_signature': '',
-            'parent_signature': '',
-            'homeroom_teacher_signature': '',
-            'counselor_signature': '',
-
             # 審核資訊
             'status': application.status.value,
             'comment': application.comment or '',
+
+            # 初審勾選框 - 根據狀態顯示打勾或空框
+            # 狀態值: "審核中", "通過", "未通過"
+            'initial_passed_check': '☑' if application.status.value == '通過' else '☐',
+            'initial_not_passed_check': '☑' if application.status.value == '未通過' else '☐',
         }
+
+        # 處理簽名欄位 - 學生簽名 + 指導教師和空間裝置管理人簽章
+        signature_types = {
+            '學生 1 簽名': 'student1_signature',
+            '學生 2 簽名': 'student2_signature',
+            '學生 3 簽名': 'student3_signature',
+            '指導教師簽章': 'teacher_signature',
+            '空間裝置管理人簽章': 'space_manager_signature',
+        }
+
+        # 初始化簽名欄位為空字串
+        for sig_type, field_name in signature_types.items():
+            template_data[field_name] = ''
+
+        # 從申請表中提取簽名並建立圖片物件
+        for sig in application.signatures:
+            if sig.type in signature_types and sig.image_url:
+                field_name = signature_types[sig.type]
+                signature_image = cls._create_signature_image(doc, sig.image_url, width_mm=35)
+                if signature_image:
+                    template_data[field_name] = signature_image
 
         return template_data
 
@@ -244,15 +397,16 @@ class PDFService:
             # 1. 載入 Word 模板
             doc = DocxTemplate(cls.TEMPLATE_PATH)
 
-            # 2. 準備模板資料
-            context = cls._prepare_template_data(application)
+            # 2. 準備模板資料（傳入 doc 以便建立簽名圖片）
+            context = cls._prepare_template_data(application, doc)
 
             # 3. 渲染模板
-            # 先列印資料以便除錯
+            # 先列印資料以便除錯（排除圖片物件）
             print("=" * 60)
             print("PDF 模板資料:")
             import json
-            print(json.dumps(context, ensure_ascii=False, indent=2, default=str))
+            debug_context = {k: v if not isinstance(v, InlineImage) else f"<InlineImage>" for k, v in context.items()}
+            print(json.dumps(debug_context, ensure_ascii=False, indent=2, default=str))
             print("=" * 60)
 
             # 使用自定義 Jinja2 環境，將未定義變數設為空字串

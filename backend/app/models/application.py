@@ -10,8 +10,8 @@ from .base import Document, TimestampMixin
 class ApplicationStatus(str, Enum):
     """申請狀態列舉"""
     PENDING = "審核中"
-    PASSED = "透過"
-    NOT_PASSED = "未透過"
+    PASSED = "通過"
+    NOT_PASSED = "未通過"
 
 
 class Member(BaseModel):
@@ -111,10 +111,11 @@ class Application(Document, TimestampMixin):
     @field_validator("status", mode="before")
     @classmethod
     def normalize_status(cls, v: str) -> str:
-        if v == "通過":
-            return "透過"
-        if v == "未通過":
-            return "未透過"
+        # 向後兼容：將舊的 "透過"/"未透過" 轉換為新的 "通過"/"未通過"
+        if v == "透過":
+            return "通過"
+        if v == "未透過":
+            return "未通過"
         return v
 
     class Settings:
