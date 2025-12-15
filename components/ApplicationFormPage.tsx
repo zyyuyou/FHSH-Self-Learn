@@ -1078,17 +1078,19 @@ const ApplicationFormPage: React.FC<ApplicationFormPageProps> = ({ applicationTo
                 {/* 教師/管理人簽章區塊 */}
                 <h4 className="text-sm font-medium text-white/80 mb-3">教師及管理人簽章</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {[
-                        '指導教師簽章',
-                        '空間裝置管理人簽章',
-                    ].map((sig) => (
+                    <SignaturePad
+                        label="指導教師簽章"
+                        value={signatures['指導教師簽章']}
+                        onChange={(value) => handleSignatureChange('指導教師簽章', value)}
+                    />
+                    <div>
                         <SignaturePad
-                            key={sig}
-                            label={sig}
-                            value={signatures[sig]}
-                            onChange={(value) => handleSignatureChange(sig, value)}
+                            label="空間裝置管理人簽章"
+                            value={signatures['空間裝置管理人簽章']}
+                            onChange={(value) => handleSignatureChange('空間裝置管理人簽章', value)}
                         />
-                    ))}
+                        <p className="text-xs text-white/50 mt-1 ml-1">（非圖書館場地，才需填寫）</p>
+                    </div>
                 </div>
             </GlassSection>
 
